@@ -309,8 +309,7 @@ const AdminCategoryDetails = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load category.',
+            'Unable to load category.',
           );
 
         } finally {
@@ -473,7 +472,6 @@ const AdminCategoryDetails = ({
           title:
             'Image Selection Failed',
           message:
-            error.message ||
             'Unable to select image.',
         });
       }
@@ -833,7 +831,6 @@ const AdminCategoryDetails = ({
           title:
             'Save Failed',
           message:
-            error.message ||
             'Unable to save category.',
         });
 
@@ -976,7 +973,6 @@ const AdminCategoryDetails = ({
                 title:
                   'Remove Failed',
                 message:
-                  error.message ||
                   'Unable to remove category image.',
                 confirmText:
                   'OK',

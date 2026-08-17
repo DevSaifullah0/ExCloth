@@ -144,8 +144,7 @@ const AdminCategories = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load categories.',
+            'Unable to load categories.',
           );
 
         } finally {

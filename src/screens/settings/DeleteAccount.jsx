@@ -196,7 +196,6 @@ const DeleteAccount = ({
           title:
             'Account Deletion Failed',
           message:
-            error?.message ||
             'Unable to delete your account.',
           confirmText: 'OK',
           cancelText: 'Cancel',

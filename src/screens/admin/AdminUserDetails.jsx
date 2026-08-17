@@ -237,8 +237,7 @@ const AdminUserDetails = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load user details.',
+            'Unable to load user details.',
           );
 
         } finally {
@@ -400,7 +399,6 @@ const AdminUserDetails = ({
           title:
             'Action Failed',
           message:
-            error.message ||
             'Unable to update account status.',
           confirmText: 'OK',
           cancelText: 'Cancel',

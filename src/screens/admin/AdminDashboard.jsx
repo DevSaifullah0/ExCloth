@@ -198,7 +198,6 @@ const AdminDashboard = ({
         type: 'error',
         title: 'Logout Error',
         message:
-          error?.message ||
           'Unable to logout right now.',
         confirmText: 'OK',
         cancelText: 'Cancel',
@@ -322,8 +321,7 @@ const AdminDashboard = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load admin dashboard.',
+            'Unable to load admin dashboard.',
           );
 
         } finally {

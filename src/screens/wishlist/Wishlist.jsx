@@ -523,8 +523,7 @@ const Wishlist = ({ navigation }) => {
         }
 
         setErrorMessage(
-          error?.message ||
-            'Unable to load wishlist.',
+          'Unable to load wishlist.',
         );
 
       } finally {
@@ -630,8 +629,7 @@ const Wishlist = ({ navigation }) => {
 
         showModal(
           'Remove Failed',
-          error?.message ||
-            'Unable to remove product from wishlist.',
+          'Unable to remove product from wishlist.',
         );
 
       } finally {

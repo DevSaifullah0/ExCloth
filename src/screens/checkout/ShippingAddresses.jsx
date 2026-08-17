@@ -246,7 +246,6 @@ const ShippingAddresses = ({
             title:
               'Address Error',
             message:
-              error.message ||
               'Unable to load your addresses.',
           });
         } finally {
@@ -436,7 +435,6 @@ const ShippingAddresses = ({
           title:
             'Default Address',
           message:
-            error.message ||
             'Unable to set the default address.',
         });
       } finally {
@@ -575,7 +573,6 @@ const ShippingAddresses = ({
           title:
             'Delete Address',
           message:
-            error.message ||
             'Unable to delete the address.',
         });
       } finally {

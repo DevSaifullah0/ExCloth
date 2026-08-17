@@ -280,8 +280,7 @@ const NotificationSettings = ({
           showModal(
             'error',
             'Unable to Load',
-            error?.message ||
-              'Unable to load notification preferences.',
+            'Unable to load notification preferences.',
           );
 
         } finally {
@@ -391,8 +390,7 @@ const NotificationSettings = ({
         showModal(
           'error',
           'Update Failed',
-          error?.message ||
-            'Unable to update notification preference.',
+          'Unable to update notification preference.',
         );
 
       } finally {

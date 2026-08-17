@@ -512,7 +512,6 @@ const Checkout = ({
             type: 'error',
             title: 'Checkout Error',
             message:
-              error.message ||
               'Unable to load checkout information.',
             confirmText: 'Try Again',
           });

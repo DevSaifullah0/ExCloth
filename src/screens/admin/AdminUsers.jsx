@@ -145,8 +145,7 @@ const AdminUsers = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load users.',
+            'Unable to load users.',
           );
 
         } finally {

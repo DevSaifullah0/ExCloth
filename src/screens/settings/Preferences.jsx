@@ -143,7 +143,6 @@ const Preferences = ({
           title:
             'Unable to Save',
           message:
-            error?.message ||
             'Unable to save theme preference.',
         });
       }
@@ -176,7 +175,6 @@ const Preferences = ({
           title:
             'Unable to Save',
           message:
-            error?.message ||
             'Unable to save language preference.',
         });
       }

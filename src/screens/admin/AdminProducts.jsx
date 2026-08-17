@@ -146,8 +146,7 @@ const AdminProducts = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load products.',
+            'Unable to load products.',
           );
 
         } finally {

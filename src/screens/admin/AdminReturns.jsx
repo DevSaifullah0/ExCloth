@@ -141,8 +141,7 @@ const AdminReturns = ({ navigation }) => {
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load return requests.',
+          'Unable to load return requests.',
         );
 
       } finally {

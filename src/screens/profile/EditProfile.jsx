@@ -181,7 +181,6 @@ const EditProfile = ({ navigation }) => {
         type: 'error',
         title: 'Unable to Load Profile',
         message:
-          error.message ||
           'Unable to load profile.',
       });
     } finally {
@@ -323,7 +322,6 @@ const EditProfile = ({ navigation }) => {
           type: 'error',
           title: 'Upload Failed',
           message:
-            error.message ||
             'Unable to upload profile photo.',
         });
       } finally {
@@ -488,7 +486,6 @@ const EditProfile = ({ navigation }) => {
         type: 'error',
         title: 'Update Failed',
         message:
-          error.message ||
           'Unable to update profile.',
       });
     } finally {

@@ -200,8 +200,7 @@ const OrderSuccess = ({
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load order.',
+          'Unable to load order.',
         );
       } finally {
         setLoading(false);

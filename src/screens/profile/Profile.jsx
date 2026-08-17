@@ -246,7 +246,6 @@ const Profile = ({ navigation }) => {
         type: 'error',
         title: 'Logout Error',
         message:
-          error?.message ||
           'Unable to logout.',
         confirmText: 'OK',
         showCancel: false,

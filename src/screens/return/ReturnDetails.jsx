@@ -406,8 +406,7 @@ const ReturnDetails = ({
 
 
           setErrorMessage(
-            error.message ||
-              'Unable to load return details.',
+            'Unable to load return details.',
           );
 
         } finally {

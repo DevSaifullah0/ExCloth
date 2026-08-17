@@ -192,8 +192,7 @@ const CancelOrder = ({
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load order.',
+          'Unable to load order.',
         );
 
       } finally {

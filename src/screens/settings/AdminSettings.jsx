@@ -150,7 +150,6 @@ const AdminSettings = ({
           title:
             'Logout Failed',
           message:
-            error?.message ||
             'Unable to logout.',
           confirmText: 'OK',
           cancelText: 'Cancel',

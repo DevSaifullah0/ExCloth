@@ -185,8 +185,7 @@ const AdminReviewDetails = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load review.',
+            'Unable to load review.',
           );
 
         } finally {
@@ -335,7 +334,6 @@ const AdminReviewDetails = ({
           title:
             'Action Failed',
           message:
-            error.message ||
             'Unable to update review status.',
           confirmText: 'OK',
           cancelText: 'Cancel',

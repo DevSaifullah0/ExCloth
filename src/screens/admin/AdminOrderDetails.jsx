@@ -154,8 +154,7 @@ const AdminOrderDetails = ({
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load order details.',
+          'Unable to load order details.',
         );
 
       } finally {
@@ -361,7 +360,6 @@ const AdminOrderDetails = ({
           type: 'error',
           title: 'Update Failed',
           message:
-            error.message ||
             'Unable to update order status.',
           confirmText: 'OK',
           cancelText: 'Cancel',

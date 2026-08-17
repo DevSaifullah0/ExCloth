@@ -458,8 +458,7 @@ const AdminCouponDetails = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load coupon.',
+            'Unable to load coupon.',
           );
 
         } finally {
@@ -811,7 +810,6 @@ const AdminCouponDetails = ({
           title:
             'Save Failed',
           message:
-            error.message ||
             'Unable to save coupon.',
         });
 

@@ -144,8 +144,7 @@ const AdminCoupons = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load coupons.',
+            'Unable to load coupons.',
           );
 
         } finally {

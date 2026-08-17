@@ -144,8 +144,7 @@ const AdminReviews = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load reviews.',
+            'Unable to load reviews.',
           );
 
         } finally {

@@ -156,8 +156,7 @@ const AdminReturnDetails = ({
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load return details.',
+          'Unable to load return details.',
         );
 
       } finally {
@@ -362,7 +361,6 @@ const AdminReturnDetails = ({
           type: 'error',
           title: 'Update Failed',
           message:
-            error.message ||
             'Unable to update return status.',
           confirmText: 'OK',
           cancelText: 'Cancel',

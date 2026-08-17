@@ -103,8 +103,7 @@ const useNotifications = () => {
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load notifications.',
+          'Unable to load notifications.',
         );
 
         return [];

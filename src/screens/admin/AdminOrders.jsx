@@ -142,8 +142,7 @@ const AdminOrders = ({ navigation }) => {
         }
 
         setErrorMessage(
-          error.message ||
-            'Unable to load orders.',
+          'Unable to load orders.',
         );
 
       } finally {

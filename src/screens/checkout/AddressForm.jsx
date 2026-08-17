@@ -718,7 +718,6 @@ const AddressForm = ({
           type: 'error',
           title: 'Address Error',
           message:
-            error.message ||
             'Unable to save your shipping address.',
         });
 

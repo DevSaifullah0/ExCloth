@@ -291,8 +291,7 @@ const OrderDetails = ({
 
 
         setErrorMessage(
-          error.message ||
-            'Unable to load order details.',
+          'Unable to load order details.',
         );
 
       } finally {

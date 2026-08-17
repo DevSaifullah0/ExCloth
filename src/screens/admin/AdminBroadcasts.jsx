@@ -248,8 +248,7 @@ const AdminBroadcasts = ({
           }
 
           setErrorMessage(
-            error.message ||
-              'Unable to load broadcast notifications.',
+            'Unable to load broadcast notifications.',
           );
 
         } finally {
@@ -432,7 +431,6 @@ const AdminBroadcasts = ({
           type: 'error',
           title: 'Send Failed',
           message:
-            error.message ||
             'Unable to send broadcast notification.',
         });
 

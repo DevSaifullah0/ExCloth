@@ -186,8 +186,7 @@ const OrderTracking = ({
 
 
           setErrorMessage(
-            error.message ||
-              'Unable to load order tracking.',
+            'Unable to load order tracking.',
           );
 
         } finally {

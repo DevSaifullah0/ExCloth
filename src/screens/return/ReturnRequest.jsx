@@ -305,8 +305,7 @@ const ReturnRequest = ({
 
 
         setErrorMessage(
-          error.message ||
-            'Unable to load return information.',
+          'Unable to load return information.',
         );
 
       } finally {
