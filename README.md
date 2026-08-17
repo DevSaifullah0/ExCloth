@@ -98,3 +98,194 @@ To learn more about React Native, take a look at the following resources:
 
 
 Payment integrations are currently implemented as demonstration/test flows. No real payment is processed.# ExCloth
+
+
+# ExCloth
+
+ExCloth is a fashion e-commerce mobile app that I built using React Native CLI and Supabase.
+
+The main idea behind the project was to build more than just a basic shopping UI. I wanted the app to cover the complete flow of an e-commerce application, from browsing products to placing an order, tracking it, requesting a return, receiving notifications, and managing everything from a separate admin side.
+
+## What the app includes
+
+On the customer side, users can create an account, browse products and categories, search for products, add items to their wishlist or cart, manage shipping addresses, apply coupons, complete checkout, and view their orders.
+
+Customers can also track their order status, cancel eligible orders, request returns, follow the refund process, write product reviews, manage their profile, and receive push notifications.
+
+The admin side is completely separate from the customer shopping flow. Admin accounts are taken directly to the admin dashboard after login and can manage products, categories, coupons, users, reviews, broadcasts, orders, returns, and refunds.
+
+## Tech Stack
+
+- React Native CLI
+- JavaScript / JSX
+- NativeWind
+- React Navigation
+- Supabase
+- PostgreSQL
+- Supabase Auth
+- Supabase Storage
+- Row Level Security
+- PostgreSQL RPC Functions
+- Supabase Edge Functions
+- Firebase Cloud Messaging
+- Notifee
+
+## Authentication and Roles
+
+ExCloth currently has two account types:
+
+- Customer
+- Admin
+
+There is no role-selection screen during login.
+
+A user simply enters their email and password. After authentication, the app checks the account on the backend and automatically decides which part of the application should open.
+
+A normal customer is sent to the shopping app, while an authorized admin is sent directly to the admin dashboard.
+
+Admin access is not available through signup and is not based on a role value controlled by the client.
+
+## Customer Features
+
+The customer application currently includes:
+
+- Login and signup
+- Password recovery
+- Home screen
+- Product categories
+- Product search
+- Product details
+- Wishlist
+- Cart
+- Shipping addresses
+- Checkout
+- Coupons
+- Multiple payment-flow screens
+- Order placement
+- My Orders
+- Order details
+- Order tracking
+- Order cancellation
+- Return requests
+- Return and refund tracking
+- Product reviews
+- Profile management
+- Push notifications
+- Settings
+- Password change
+- Account deletion
+
+## Admin Features
+
+The admin side includes:
+
+- Admin dashboard
+- Product management
+- Category management
+- Coupon management
+- User management
+- Review moderation
+- Broadcast notifications
+- Order management
+- Return management
+- Refund workflow
+
+Admin and customer navigation are kept separate so an admin does not use customer features such as Cart, Wishlist, Checkout, or Place Order.
+
+## Backend
+
+Supabase is used as the backend for the project.
+
+PostgreSQL stores the application data, while Supabase Auth handles authentication.
+
+I am also using Row Level Security and secure PostgreSQL functions for operations that should not be trusted to the mobile client alone.
+
+Sensitive operations such as admin actions are protected on the backend instead of relying only on hidden screens or navigation checks.
+
+## Push Notifications
+
+Android push notifications are implemented using Firebase Cloud Messaging and Notifee.
+
+The app currently supports notifications related to things such as:
+
+- Order updates
+- Return updates
+- Promotions
+- Coupons
+- Announcements
+
+Notifications can also open the relevant screen when the user taps them.
+
+## Orders
+
+The current order flow supports statuses such as:
+
+- Pending
+- Confirmed
+- Processing
+- Shipped
+- Out for Delivery
+- Delivered
+- Cancelled
+
+Customers can follow these updates from the order-tracking screen, while admins can update the order from the management side.
+
+## Returns and Refunds
+
+ExCloth also includes a return workflow instead of stopping at basic order placement.
+
+A return can move through stages such as:
+
+- Requested
+- Approved
+- Rejected
+- Pickup Scheduled
+- Picked Up
+- Received
+- Refund Processing
+- Refunded
+
+The customer can follow the progress while the admin handles the return from the admin panel.
+
+## Payments
+
+The application currently contains payment flows for:
+
+- Cash on Delivery
+- Card Payment
+- Easypaisa
+- JazzCash
+- Bank Transfer
+
+These are currently part of the application flow and demonstration of the checkout system.
+
+Production payment processing will require integration with an approved payment provider before real transactions are enabled.
+
+Sensitive information such as card CVV, PIN, OTP, or banking passwords is not intended to be stored in the application database.
+
+## Project Structure
+
+The project is organized mainly around separate screens, navigation, reusable components, hooks, backend utilities, and role-specific functionality.
+
+```text
+ExCloth/
+├── android/
+├── ios/
+├── src/
+│   ├── components/
+│   ├── context/
+│   ├── hooks/
+│   ├── images/
+│   ├── lib/
+│   ├── navigation/
+│   └── screens/
+│       ├── admin/
+│       ├── auth/
+│       ├── payment/
+│       ├── profile/
+│       ├── settings/
+│       └── ...
+├── supabase/
+├── docs/
+├── App.jsx
+└── package.json
