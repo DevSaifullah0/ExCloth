@@ -332,6 +332,10 @@ const EditProfile = ({ navigation }) => {
     };
 
   const handleSave = async () => {
+    if (saving) {
+      return;
+    }
+
     const cleanFirstName =
       firstName.trim();
 

@@ -692,6 +692,10 @@ const Payment = ({
 
   const handlePlaceOrder =
     async () => {
+    if (placingOrder) {
+      return;
+    }
+
       // ======================================
       // DELIVERY ADDRESS
       // ======================================

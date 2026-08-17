@@ -105,6 +105,10 @@ const ChangePassword = ({
 
   const updatePassword =
     async () => {
+    if (loading) {
+      return;
+    }
+
       if (
         !currentPassword
       ) {

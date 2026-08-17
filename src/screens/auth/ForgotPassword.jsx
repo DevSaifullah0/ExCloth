@@ -30,6 +30,10 @@ const ForgotPassword = ({
 
   const handleResetPassword =
     async () => {
+    if (loading) {
+      return;
+    }
+
       const cleanEmail = email
         .trim()
         .toLowerCase();

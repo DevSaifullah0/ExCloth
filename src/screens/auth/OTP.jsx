@@ -129,6 +129,10 @@ const OTP = ({
   };
 
   const handleResend = async () => {
+    if (resending) {
+      return;
+    }
+
     try {
       if (!email) {
         Alert.alert(

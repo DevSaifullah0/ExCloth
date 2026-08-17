@@ -564,6 +564,10 @@ const Wishlist = ({ navigation }) => {
       wishlistId,
       productId,
     ) => {
+    if (removingId) {
+      return;
+    }
+
       try {
         setRemovingId(
           wishlistId,

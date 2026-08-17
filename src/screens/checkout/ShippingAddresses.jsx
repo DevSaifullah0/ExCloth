@@ -449,6 +449,10 @@ const ShippingAddresses = ({
 
   const deleteAddress =
     async address => {
+    if (actionLoadingId) {
+      return;
+    }
+
       try {
         setActionLoadingId(
           address.id,

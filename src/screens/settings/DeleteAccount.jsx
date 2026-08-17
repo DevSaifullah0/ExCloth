@@ -131,6 +131,10 @@ const DeleteAccount = ({
 
   const performDelete =
     async () => {
+    if (loading) {
+      return;
+    }
+
       try {
         setLoading(true);
 

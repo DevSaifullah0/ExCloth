@@ -1407,6 +1407,13 @@ const AdminProductDetails = ({
       variant,
       index,
     ) => {
+    if (
+      saving ||
+      imageUploading
+    ) {
+      return;
+    }
+
       if (
         !currentProductId
       ) {

@@ -51,6 +51,10 @@ const ResetPassword = ({
 
   const handleResetPassword =
     async () => {
+    if (loading) {
+      return;
+    }
+
       if (!password) {
         Alert.alert(
           'Password Required',

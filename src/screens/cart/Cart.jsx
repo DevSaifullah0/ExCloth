@@ -605,6 +605,10 @@ const Cart = ({ navigation }) => {
       item,
       newQuantity,
     ) => {
+    if (updatingId) {
+      return;
+    }
+
       try {
         if (
           newQuantity < 1
@@ -720,6 +724,10 @@ const Cart = ({ navigation }) => {
 
   const removeCartItem =
     async cartId => {
+    if (updatingId) {
+      return;
+    }
+
       try {
         setUpdatingId(
           cartId,
