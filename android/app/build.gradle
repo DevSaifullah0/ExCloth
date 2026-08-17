@@ -66,6 +66,15 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+
+        release {
+            if (project.hasProperty("EXCLOTH_UPLOAD_STORE_FILE")) {
+                storeFile file(EXCLOTH_UPLOAD_STORE_FILE)
+                storePassword EXCLOTH_UPLOAD_STORE_PASSWORD
+                keyAlias EXCLOTH_UPLOAD_KEY_ALIAS
+                keyPassword EXCLOTH_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
 
     buildTypes {
@@ -74,7 +83,7 @@ android {
         }
 
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
 
             minifyEnabled enableProguardInReleaseBuilds
 
