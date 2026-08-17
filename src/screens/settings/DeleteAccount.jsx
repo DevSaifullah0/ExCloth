@@ -177,9 +177,33 @@ const DeleteAccount = ({
         }
 
 
-        await supabase.auth.signOut({
-          scope: 'local',
-        });
+        try {
+          const {
+            error: signOutError,
+          } =
+            await supabase.auth.signOut({
+              scope: 'local',
+            });
+
+          if (
+            signOutError &&
+            __DEV__
+          ) {
+            console.error(
+              'Post-delete local sign out error:',
+              signOutError?.message ||
+                signOutError,
+            );
+          }
+        } catch (signOutError) {
+          if (__DEV__) {
+            console.error(
+              'Post-delete local sign out error:',
+              signOutError?.message ||
+                signOutError,
+            );
+          }
+        }
 
       } catch (error) {
         if (__DEV__) {
