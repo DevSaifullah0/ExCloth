@@ -2,6 +2,7 @@ package com.excloth
 
 
 import android.os.Bundle
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -19,6 +20,7 @@ class MainActivity : ReactActivity() {
    */
   override fun getMainComponentName(): String = "ExCloth"
   override fun onCreate(savedInstanceState: Bundle?) {
+    installSplashScreen()
     supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
     super.onCreate(savedInstanceState)
   }
