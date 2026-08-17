@@ -706,10 +706,12 @@ const AddressForm = ({
         navigation.goBack();
 
       } catch (error) {
-        console.log(
-          'Save Address Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Save Address Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

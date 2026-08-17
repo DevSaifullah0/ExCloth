@@ -231,10 +231,12 @@ const WriteReview = ({
           }
         }
       } catch (parseError) {
-        console.log(
-          'Review Error Parse:',
-          parseError.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Review Error Parse:',
+            parseError.message,
+          );
+        }
       }
 
       return (
@@ -468,10 +470,12 @@ const WriteReview = ({
         });
 
       } catch (error) {
-        console.log(
-          'Submit Review Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Submit Review Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

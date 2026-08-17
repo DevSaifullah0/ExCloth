@@ -82,10 +82,12 @@ const Notifications = ({ navigation }) => {
         setNotifications(data || []);
 
       } catch (error) {
-        console.log(
-          'Notifications Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Notifications Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           'Unable to load notifications.',
@@ -224,10 +226,12 @@ const Notifications = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.log(
-        'Mark Notification Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Mark Notification Error:',
+          error.message,
+        );
+      }
 
       Alert.alert(
         'Error',
@@ -273,10 +277,12 @@ const Notifications = ({ navigation }) => {
       );
 
     } catch (error) {
-      console.log(
-        'Mark All Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Mark All Error:',
+          error.message,
+        );
+      }
 
       Alert.alert(
         'Error',

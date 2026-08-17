@@ -184,10 +184,12 @@ const CancelOrder = ({
         );
 
       } catch (error) {
-        console.log(
-          'Cancel Order Load Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Cancel Order Load Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||
@@ -201,6 +203,8 @@ const CancelOrder = ({
 
   useEffect(() => {
     fetchOrder();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     orderId,
   ]);
@@ -321,10 +325,12 @@ const CancelOrder = ({
         }
 
       } catch (parseError) {
-        console.log(
-          'Cancel Order Error Parse:',
-          parseError.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Cancel Order Error Parse:',
+            parseError.message,
+          );
+        }
       }
 
       return (
@@ -477,10 +483,12 @@ const CancelOrder = ({
         });
 
       } catch (error) {
-        console.log(
-          'Cancel Order Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Cancel Order Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',

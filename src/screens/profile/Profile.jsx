@@ -120,10 +120,12 @@ const Profile = ({ navigation }) => {
           },
         );
       } catch (error) {
-        console.log(
-          'Profile Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Profile Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           'Unable to load profile.',
@@ -178,10 +180,12 @@ const Profile = ({ navigation }) => {
 
 
           if (unregisterError) {
-            console.log(
-              'Push token unregister error:',
-              unregisterError.message,
-            );
+            if (__DEV__) {
+              console.error(
+                'Push token unregister error:',
+                unregisterError.message,
+              );
+            }
           }
 
 
@@ -192,22 +196,26 @@ const Profile = ({ navigation }) => {
           } catch (
             tokenDeleteError
           ) {
-            console.log(
-              'FCM Token Delete Error:',
-              tokenDeleteError?.message ||
-                tokenDeleteError,
-            );
+            if (__DEV__) {
+              console.error(
+                'FCM Token Delete Error:',
+                tokenDeleteError?.message ||
+                  tokenDeleteError,
+              );
+            }
           }
         }
 
       } catch (
         tokenCleanupError
       ) {
-        console.log(
-          'Push token cleanup error:',
-          tokenCleanupError?.message ||
-            tokenCleanupError,
-        );
+        if (__DEV__) {
+          console.error(
+            'Push token cleanup error:',
+            tokenCleanupError?.message ||
+              tokenCleanupError,
+          );
+        }
       }
 
 
@@ -224,11 +232,13 @@ const Profile = ({ navigation }) => {
       }
 
     } catch (error) {
-      console.log(
-        'Logout Error:',
-        error?.message ||
-          error,
-      );
+      if (__DEV__) {
+        console.error(
+          'Logout Error:',
+          error?.message ||
+            error,
+        );
+      }
 
 
       setModal({

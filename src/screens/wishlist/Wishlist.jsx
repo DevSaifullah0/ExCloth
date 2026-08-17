@@ -227,10 +227,12 @@ const Wishlist = ({ navigation }) => {
             );
 
           } catch (parseError) {
-            console.log(
-              'Wishlist Variant Parse Error:',
-              parseError,
-            );
+            if (__DEV__) {
+              console.error(
+                'Wishlist Variant Parse Error:',
+                parseError,
+              );
+            }
           }
         }
 
@@ -513,10 +515,12 @@ const Wishlist = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'Wishlist Fetch Error:',
-          error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Wishlist Fetch Error:',
+            error,
+          );
+        }
 
         setErrorMessage(
           error?.message ||
@@ -613,10 +617,12 @@ const Wishlist = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'Remove Wishlist Error:',
-          error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Remove Wishlist Error:',
+            error,
+          );
+        }
 
         showModal(
           'Remove Failed',

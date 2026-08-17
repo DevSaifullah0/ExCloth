@@ -98,6 +98,8 @@ const EditProfile = ({ navigation }) => {
 
   useEffect(() => {
     fetchProfile();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchProfile = async () => {
@@ -168,10 +170,12 @@ const EditProfile = ({ navigation }) => {
         profile?.avatar_url || null,
       );
     } catch (error) {
-      console.log(
-        'Edit Profile Fetch Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Edit Profile Fetch Error:',
+          error.message,
+        );
+      }
 
       showModal({
         type: 'error',
@@ -308,10 +312,12 @@ const EditProfile = ({ navigation }) => {
             'Your profile photo has been updated successfully.',
         });
       } catch (error) {
-        console.log(
-          'Avatar Upload Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Avatar Upload Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',
@@ -467,10 +473,12 @@ const EditProfile = ({ navigation }) => {
         },
       });
     } catch (error) {
-      console.log(
-        'Edit Profile Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Edit Profile Error:',
+          error.message,
+        );
+      }
 
       showModal({
         type: 'error',

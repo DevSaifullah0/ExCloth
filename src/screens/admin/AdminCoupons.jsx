@@ -136,10 +136,12 @@ const AdminCoupons = ({
           setCoupons(list);
 
         } catch (error) {
-          console.log(
-            'Admin Coupons Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Coupons Load Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

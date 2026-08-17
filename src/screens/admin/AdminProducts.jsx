@@ -138,10 +138,12 @@ const AdminProducts = ({
           setProducts(list);
 
         } catch (error) {
-          console.log(
-            'Admin Products Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Products Load Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

@@ -282,10 +282,12 @@ const OrderDetails = ({
         );
 
       } catch (error) {
-        console.log(
-          'Order Details Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Order Details Error:',
+            error.message,
+          );
+        }
 
 
         setErrorMessage(

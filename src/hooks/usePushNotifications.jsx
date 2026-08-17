@@ -173,18 +173,22 @@ const savePushToken =
 
 
     if (error) {
-      console.log(
-        'Push token registration error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Push token registration error:',
+          error.message,
+        );
+      }
 
       return;
     }
 
 
-    console.log(
-      'FCM token registered successfully',
-    );
+    if (__DEV__) {
+      console.error(
+        'FCM token registered successfully',
+      );
+    }
   };
 
 
@@ -222,11 +226,13 @@ const usePushNotifications =
             );
 
           } catch (error) {
-            console.log(
-              'FCM token error:',
-              error?.message ||
-                error,
-            );
+            if (__DEV__) {
+              console.error(
+                'FCM token error:',
+                error?.message ||
+                  error,
+              );
+            }
           }
         };
 
@@ -239,9 +245,11 @@ const usePushNotifications =
 
 
             if (!permissionGranted) {
-              console.log(
-                'Notification permission not granted',
-              );
+              if (__DEV__) {
+                console.error(
+                  'Notification permission not granted',
+                );
+              }
 
               return;
             }
@@ -262,11 +270,13 @@ const usePushNotifications =
                     );
 
                   } catch (error) {
-                    console.log(
-                      'Foreground notification error:',
-                      error?.message ||
-                        error,
-                    );
+                    if (__DEV__) {
+                      console.error(
+                        'Foreground notification error:',
+                        error?.message ||
+                          error,
+                      );
+                    }
                   }
                 },
               );
@@ -318,11 +328,13 @@ const usePushNotifications =
               subscription;
 
           } catch (error) {
-            console.log(
-              'Push notification setup error:',
-              error?.message ||
-                error,
-            );
+            if (__DEV__) {
+              console.error(
+                'Push notification setup error:',
+                error?.message ||
+                  error,
+              );
+            }
           }
         };
 

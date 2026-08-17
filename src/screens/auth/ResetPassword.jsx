@@ -171,10 +171,12 @@ const ResetPassword = ({
         );
 
       } catch (error) {
-        console.log(
-          'Reset Password Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Reset Password Error:',
+            error.message,
+          );
+        }
 
         Alert.alert(
           'Password Reset Failed',

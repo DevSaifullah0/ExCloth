@@ -95,10 +95,12 @@ const useNotifications = () => {
 
         return data || [];
       } catch (error) {
-        console.log(
-          'Notifications Load Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Notifications Load Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||
@@ -242,10 +244,12 @@ const useNotifications = () => {
 
         channelRef.current = channel;
       } catch (error) {
-        console.log(
-          'Notification Realtime Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Notification Realtime Error:',
+            error.message,
+          );
+        }
       }
     };
 
@@ -305,10 +309,12 @@ const useNotifications = () => {
       );
 
       if (error) {
-        console.log(
-          'Mark Notification Read Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Mark Notification Read Error:',
+            error.message,
+          );
+        }
 
         setNotifications(current =>
           current.map(item =>
@@ -354,10 +360,12 @@ const useNotifications = () => {
       );
 
       if (error) {
-        console.log(
-          'Mark All Notifications Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Mark All Notifications Error:',
+            error.message,
+          );
+        }
 
         setNotifications(previous);
 

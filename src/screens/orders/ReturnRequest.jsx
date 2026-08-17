@@ -297,10 +297,12 @@ const ReturnRequest = ({
         );
 
       } catch (error) {
-        console.log(
-          'Return Request Load Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Return Request Load Error:',
+            error.message,
+          );
+        }
 
 
         setErrorMessage(
@@ -316,6 +318,8 @@ const ReturnRequest = ({
 
   useEffect(() => {
     fetchOrder();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     orderId,
   ]);
@@ -589,10 +593,12 @@ const ReturnRequest = ({
         }
 
       } catch (parseError) {
-        console.log(
-          'Return Error Parse:',
-          parseError.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Return Error Parse:',
+            parseError.message,
+          );
+        }
       }
 
 
@@ -756,10 +762,12 @@ const ReturnRequest = ({
         });
 
       } catch (error) {
-        console.log(
-          'Return Request Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Return Request Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

@@ -110,10 +110,12 @@ const OTP = ({
     } catch (error) {
       finishRecovery();
 
-      console.log(
-        'OTP Verification Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'OTP Verification Error:',
+          error.message,
+        );
+      }
 
       Alert.alert(
         'Invalid Code',
@@ -155,10 +157,12 @@ const OTP = ({
       );
 
     } catch (error) {
-      console.log(
-        'OTP Resend Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'OTP Resend Error:',
+          error.message,
+        );
+      }
 
       Alert.alert(
         'Resend Failed',

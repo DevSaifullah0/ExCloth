@@ -61,6 +61,8 @@ const OrderSuccess = ({
 
   useEffect(() => {
     fetchOrderDetails();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     orderId,
   ]);
@@ -190,10 +192,12 @@ const OrderSuccess = ({
           paymentData,
         );
       } catch (error) {
-        console.log(
-          'Order Success Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Order Success Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||

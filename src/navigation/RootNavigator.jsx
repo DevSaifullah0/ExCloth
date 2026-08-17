@@ -94,6 +94,7 @@ const RootNavigator = () => {
         );
       }, 0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     session,
     isAdmin,
@@ -376,10 +377,12 @@ const RootNavigator = () => {
           }
 
         } catch (error) {
-          console.log(
-            'Initial notification error:',
-            error?.message || error,
-          );
+          if (__DEV__) {
+            console.error(
+              'Initial notification error:',
+              error?.message || error,
+            );
+          }
         }
       };
 
@@ -391,6 +394,8 @@ const RootNavigator = () => {
       unsubscribeOpenedApp();
       unsubscribeForegroundEvent();
     };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 

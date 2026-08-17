@@ -104,10 +104,12 @@ const Settings = ({
             if (
               unregisterError
             ) {
-              console.log(
-                'Push token unregister error:',
-                unregisterError.message,
-              );
+              if (__DEV__) {
+                console.error(
+                  'Push token unregister error:',
+                  unregisterError.message,
+                );
+              }
             }
 
             try {
@@ -117,21 +119,25 @@ const Settings = ({
             } catch (
               tokenDeleteError
             ) {
-              console.log(
-                'FCM token delete error:',
-                tokenDeleteError?.message ||
-                  tokenDeleteError,
-              );
+              if (__DEV__) {
+                console.error(
+                  'FCM token delete error:',
+                  tokenDeleteError?.message ||
+                    tokenDeleteError,
+                );
+              }
             }
           }
         } catch (
           pushError
         ) {
-          console.log(
-            'Logout push cleanup error:',
-            pushError?.message ||
-              pushError,
-          );
+          if (__DEV__) {
+            console.error(
+              'Logout push cleanup error:',
+              pushError?.message ||
+                pushError,
+            );
+          }
         }
       }
 
@@ -149,11 +155,13 @@ const Settings = ({
       }
 
     } catch (error) {
-      console.log(
-        'Settings Logout Error:',
-        error?.message ||
-          error,
-      );
+      if (__DEV__) {
+        console.error(
+          'Settings Logout Error:',
+          error?.message ||
+            error,
+        );
+      }
 
       setModal({
         visible: true,

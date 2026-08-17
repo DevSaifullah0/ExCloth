@@ -301,10 +301,12 @@ const AdminCategoryDetails = ({
           );
 
         } catch (error) {
-          console.log(
-            'Admin Category Details Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Category Details Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||
@@ -627,10 +629,12 @@ const AdminCategoryDetails = ({
           if (
             removeOldError
           ) {
-            console.log(
-              'Old Category Image Delete Error:',
-              removeOldError.message,
-            );
+            if (__DEV__) {
+              console.error(
+                'Old Category Image Delete Error:',
+                removeOldError.message,
+              );
+            }
           }
         }
 
@@ -817,10 +821,12 @@ const AdminCategoryDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Save Category Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Save Category Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',
@@ -927,10 +933,12 @@ const AdminCategoryDetails = ({
                 if (
                   removeError
                 ) {
-                  console.log(
-                    'Category Image Delete Error:',
-                    removeError.message,
-                  );
+                  if (__DEV__) {
+                    console.error(
+                      'Category Image Delete Error:',
+                      removeError.message,
+                    );
+                  }
                 }
               }
 

@@ -240,10 +240,12 @@ const ProductDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Review Summary Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Review Summary Error:',
+            error.message,
+          );
+        }
 
         setReviewSummary({
           averageRating: 0,
@@ -275,6 +277,8 @@ const ProductDetails = ({
     });
 
     fetchProductDetails();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     passedProduct?.id,
     wishlistVariantId,
@@ -522,10 +526,12 @@ const ProductDetails = ({
         }
 
       } catch (error) {
-        console.log(
-          'Product Details Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Product Details Error:',
+            error.message,
+          );
+        }
 
 
         showModal({
@@ -686,10 +692,12 @@ const ProductDetails = ({
 
 
       } catch (error) {
-        console.log(
-          'Wishlist Error:',
-          error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Wishlist Error:',
+            error,
+          );
+        }
 
 
         showModal({
@@ -1138,10 +1146,12 @@ const ProductDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Cart Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Cart Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

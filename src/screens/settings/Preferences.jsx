@@ -99,11 +99,13 @@ const Preferences = ({
           }
 
         } catch (error) {
-          console.log(
-            'Preferences Load Error:',
-            error?.message ||
-              error,
-          );
+          if (__DEV__) {
+            console.error(
+              'Preferences Load Error:',
+              error?.message ||
+                error,
+            );
+          }
 
         } finally {
           setLoading(false);

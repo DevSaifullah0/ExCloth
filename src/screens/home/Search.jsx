@@ -37,6 +37,8 @@ const Search = ({ navigation }) => {
     return () => {
       clearTimeout(timer);
     };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const searchProducts = async () => {
@@ -127,10 +129,12 @@ const Search = ({ navigation }) => {
 
       setProducts(uniqueProducts);
     } catch (error) {
-      console.log(
-        'Search Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Search Error:',
+          error.message,
+        );
+      }
 
       setErrorMessage(
         'Unable to search products.',

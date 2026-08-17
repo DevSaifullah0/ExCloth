@@ -503,10 +503,12 @@ const Payment = ({
         );
 
       } catch (error) {
-        console.log(
-          'Payment Load Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Payment Load Error:',
+            error.message,
+          );
+        }
 
 
         setErrorMessage(
@@ -668,10 +670,12 @@ const Payment = ({
         }
 
       } catch (parseError) {
-        console.log(
-          'Function Error Parse:',
-          parseError.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Function Error Parse:',
+            parseError.message,
+          );
+        }
       }
 
 
@@ -942,10 +946,12 @@ const Payment = ({
         );
 
       } catch (error) {
-        console.log(
-          'Place Order Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Place Order Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

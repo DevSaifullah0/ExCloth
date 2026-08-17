@@ -108,19 +108,23 @@ const DeleteAccount = ({
         } catch (
           tokenError
         ) {
-          console.log(
-            'Delete account FCM token error:',
-            tokenError?.message ||
-              tokenError,
-          );
+          if (__DEV__) {
+            console.error(
+              'Delete account FCM token error:',
+              tokenError?.message ||
+                tokenError,
+            );
+          }
         }
 
       } catch (error) {
-        console.log(
-          'Delete account push cleanup error:',
-          error?.message ||
-            error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Delete account push cleanup error:',
+            error?.message ||
+              error,
+          );
+        }
       }
     };
 
@@ -174,11 +178,13 @@ const DeleteAccount = ({
         });
 
       } catch (error) {
-        console.log(
-          'Delete Account Error:',
-          error?.message ||
-            error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Delete Account Error:',
+            error?.message ||
+              error,
+          );
+        }
 
         setModal({
           visible: true,

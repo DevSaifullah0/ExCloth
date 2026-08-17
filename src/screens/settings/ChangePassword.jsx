@@ -261,11 +261,13 @@ const ChangePassword = ({
         );
 
       } catch (error) {
-        console.log(
-          'Change Password Error:',
-          error?.message ||
-            error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Change Password Error:',
+            error?.message ||
+              error,
+          );
+        }
 
         showModal(
           'error',

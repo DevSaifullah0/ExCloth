@@ -177,10 +177,12 @@ const AdminReviewDetails = ({
           );
 
         } catch (error) {
-          console.log(
-            'Admin Review Details Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Review Details Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

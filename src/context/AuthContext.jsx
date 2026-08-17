@@ -54,8 +54,8 @@ export const AuthProvider = ({ children }) => {
         } = await supabase.auth.getSession();
 
 
-        if (error) {
-          console.log(
+        if (error && __DEV__) {
+          console.error(
             'Session Error:',
             error.message,
           );
@@ -74,10 +74,12 @@ export const AuthProvider = ({ children }) => {
         setSession(initialSession);
 
       } catch (error) {
-        console.log(
-          'Auth Error:',
-          error?.message || error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Auth Error:',
+            error?.message || error,
+          );
+        }
 
         if (mounted) {
           setSession(null);
@@ -183,10 +185,12 @@ export const AuthProvider = ({ children }) => {
         setIsAdmin(data === true);
 
       } catch (error) {
-        console.log(
-          'Admin role check error:',
-          error?.message || error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin role check error:',
+            error?.message || error,
+          );
+        }
 
 
         if (active) {
@@ -207,6 +211,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       active = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
 

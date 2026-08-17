@@ -259,10 +259,12 @@ const ProductReviews = ({
         );
 
       } catch (error) {
-        console.log(
-          'Product Reviews Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Product Reviews Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           'Unable to load product reviews.',

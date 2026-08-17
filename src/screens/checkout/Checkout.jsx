@@ -500,10 +500,12 @@ const Checkout = ({
           );
 
         } catch (error) {
-          console.log(
-            'Checkout Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Checkout Load Error:',
+              error.message,
+            );
+          }
 
 
           showModal({
@@ -519,6 +521,7 @@ const Checkout = ({
           setLoading(false);
         }
       },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       [
         route.params
           ?.selectedAddress

@@ -136,10 +136,12 @@ const AdminReviews = ({
           setReviews(list);
 
         } catch (error) {
-          console.log(
-            'Admin Reviews Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Reviews Load Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

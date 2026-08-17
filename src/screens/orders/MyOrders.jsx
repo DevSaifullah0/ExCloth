@@ -187,10 +187,12 @@ const MyOrders = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'My Orders Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'My Orders Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           'Unable to load your orders.',

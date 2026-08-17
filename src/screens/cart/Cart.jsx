@@ -554,10 +554,12 @@ const Cart = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'Cart Fetch Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Cart Fetch Error:',
+            error.message,
+          );
+        }
 
 
         setErrorMessage(
@@ -693,10 +695,12 @@ const Cart = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'Quantity Update Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Quantity Update Error:',
+            error.message,
+          );
+        }
 
 
         showModal(
@@ -748,10 +752,12 @@ const Cart = ({ navigation }) => {
         );
 
       } catch (error) {
-        console.log(
-          'Remove Cart Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Remove Cart Error:',
+            error.message,
+          );
+        }
 
 
         showModal(

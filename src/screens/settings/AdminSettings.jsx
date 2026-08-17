@@ -107,21 +107,25 @@ const AdminSettings = ({
               } catch (
                 tokenError
               ) {
-                console.log(
-                  'Admin settings token delete error:',
-                  tokenError?.message ||
-                    tokenError,
-                );
+                if (__DEV__) {
+                  console.error(
+                    'Admin settings token delete error:',
+                    tokenError?.message ||
+                      tokenError,
+                  );
+                }
               }
             }
           } catch (
             pushError
           ) {
-            console.log(
-              'Admin settings push cleanup error:',
-              pushError?.message ||
-                pushError,
-            );
+            if (__DEV__) {
+              console.error(
+                'Admin settings push cleanup error:',
+                pushError?.message ||
+                  pushError,
+              );
+            }
           }
         }
 

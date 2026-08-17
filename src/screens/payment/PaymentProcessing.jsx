@@ -66,6 +66,8 @@ const PaymentProcessing = ({
       true;
 
     processPayment();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -109,10 +111,12 @@ const PaymentProcessing = ({
       } catch (
         parseError
       ) {
-        console.log(
-          'Payment Function Error Parse:',
-          parseError.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Payment Function Error Parse:',
+            parseError.message,
+          );
+        }
       }
 
       return (
@@ -308,10 +312,12 @@ const PaymentProcessing = ({
           },
         );
       } catch (error) {
-        console.log(
-          'Payment Processing Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Payment Processing Error:',
+            error.message,
+          );
+        }
 
         failPayment(
           error.message ||

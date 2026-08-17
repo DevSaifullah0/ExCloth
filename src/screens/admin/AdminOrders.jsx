@@ -134,10 +134,12 @@ const AdminOrders = ({ navigation }) => {
         setOrders(list);
 
       } catch (error) {
-        console.log(
-          'Admin Orders Load Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin Orders Load Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||

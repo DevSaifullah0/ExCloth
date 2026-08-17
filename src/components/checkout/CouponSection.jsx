@@ -224,10 +224,12 @@ const CouponSection = ({
         });
 
       } catch (error) {
-        console.log(
-          'Coupon Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Coupon Error:',
+            error.message,
+          );
+        }
 
 
         showModal({

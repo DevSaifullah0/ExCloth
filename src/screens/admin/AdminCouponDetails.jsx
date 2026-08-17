@@ -450,10 +450,12 @@ const AdminCouponDetails = ({
           );
 
         } catch (error) {
-          console.log(
-            'Admin Coupon Details Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Coupon Details Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||
@@ -464,6 +466,7 @@ const AdminCouponDetails = ({
           setLoading(false);
         }
       },
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       [
         currentCouponId,
       ],
@@ -796,10 +799,12 @@ const AdminCouponDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Save Coupon Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Save Coupon Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',

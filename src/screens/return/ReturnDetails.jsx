@@ -397,10 +397,12 @@ const ReturnDetails = ({
           );
 
         } catch (error) {
-          console.log(
-            'Return Details Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Return Details Error:',
+              error.message,
+            );
+          }
 
 
           setErrorMessage(

@@ -148,10 +148,12 @@ const AdminReturnDetails = ({
         setDetails(data);
 
       } catch (error) {
-        console.log(
-          'Admin Return Details Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin Return Details Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||
@@ -348,10 +350,12 @@ const AdminReturnDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Admin Return Status Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin Return Status Error:',
+            error.message,
+          );
+        }
 
         setOverlay({
           visible: true,

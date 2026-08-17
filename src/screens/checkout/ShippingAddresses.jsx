@@ -234,10 +234,12 @@ const ShippingAddresses = ({
             },
           );
         } catch (error) {
-          console.log(
-            'Shipping Addresses Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Shipping Addresses Error:',
+              error.message,
+            );
+          }
 
           showModal({
             type: 'error',
@@ -422,10 +424,12 @@ const ShippingAddresses = ({
 
         await loadAddresses();
       } catch (error) {
-        console.log(
-          'Set Default Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Set Default Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',
@@ -555,10 +559,12 @@ const ShippingAddresses = ({
             'Shipping address has been removed.',
         });
       } catch (error) {
-        console.log(
-          'Delete Address Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Delete Address Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',

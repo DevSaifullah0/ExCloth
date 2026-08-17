@@ -240,10 +240,12 @@ const AdminBroadcasts = ({
           );
 
         } catch (error) {
-          console.log(
-            'Admin Broadcasts Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Broadcasts Load Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||
@@ -419,10 +421,12 @@ const AdminBroadcasts = ({
         });
 
       } catch (error) {
-        console.log(
-          'Send Broadcast Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Send Broadcast Error:',
+            error.message,
+          );
+        }
 
         showModal({
           type: 'error',

@@ -101,10 +101,12 @@ const CategoryProducts = ({
 
         setProducts(data || []);
       } catch (error) {
-        console.log(
-          'Category Products Error:',
-          error,
-        );
+        if (__DEV__) {
+          console.error(
+            'Category Products Error:',
+            error,
+          );
+        }
 
         setProducts([]);
 

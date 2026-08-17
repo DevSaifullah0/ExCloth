@@ -193,10 +193,12 @@ const Home = ({ navigation }) => {
         popularResult.data || [],
       );
     } catch (error) {
-      console.log(
-        'Home Data Error:',
-        error.message,
-      );
+      if (__DEV__) {
+        console.error(
+          'Home Data Error:',
+          error.message,
+        );
+      }
 
       setErrorMessage(
         'Unable to load home data.',

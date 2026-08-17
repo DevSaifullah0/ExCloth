@@ -145,11 +145,13 @@ const NotificationSettings = ({
           );
 
         } catch (error) {
-          console.log(
-            'Notification permission check error:',
-            error?.message ||
-              error,
-          );
+          if (__DEV__) {
+            console.error(
+              'Notification permission check error:',
+              error?.message ||
+                error,
+            );
+          }
 
           setPermissionStatus(
             'unknown',
@@ -267,11 +269,13 @@ const NotificationSettings = ({
           }
 
         } catch (error) {
-          console.log(
-            'Notification Preferences Error:',
-            error?.message ||
-              error,
-          );
+          if (__DEV__) {
+            console.error(
+              'Notification Preferences Error:',
+              error?.message ||
+                error,
+            );
+          }
 
           showModal(
             'error',

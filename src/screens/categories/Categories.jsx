@@ -56,10 +56,12 @@ const Categories = ({ navigation }) => {
 
         setCategories(data || []);
       } catch (error) {
-        console.log(
-          'Categories Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Categories Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           'Unable to load categories.',

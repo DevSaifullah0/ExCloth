@@ -137,10 +137,12 @@ const AdminUsers = ({
           setUsers(list);
 
         } catch (error) {
-          console.log(
-            'Admin Users Load Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Users Load Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

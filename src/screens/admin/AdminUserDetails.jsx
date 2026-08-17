@@ -229,10 +229,12 @@ const AdminUserDetails = ({
           });
 
         } catch (error) {
-          console.log(
-            'Admin User Details Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin User Details Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

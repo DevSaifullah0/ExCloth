@@ -146,10 +146,12 @@ const AdminOrderDetails = ({
         setDetails(data);
 
       } catch (error) {
-        console.log(
-          'Admin Order Details Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin Order Details Error:',
+            error.message,
+          );
+        }
 
         setErrorMessage(
           error.message ||
@@ -347,10 +349,12 @@ const AdminOrderDetails = ({
         });
 
       } catch (error) {
-        console.log(
-          'Admin Order Status Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin Order Status Error:',
+            error.message,
+          );
+        }
 
         setOverlay({
           visible: true,

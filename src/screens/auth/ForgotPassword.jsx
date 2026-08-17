@@ -88,10 +88,12 @@ const ForgotPassword = ({
         );
 
       } catch (error) {
-        console.log(
-          'Forgot Password Error:',
-          error.message,
-        );
+        if (__DEV__) {
+          console.error(
+            'Forgot Password Error:',
+            error.message,
+          );
+        }
 
         Alert.alert(
           'Reset Failed',

@@ -132,10 +132,12 @@ const AdminDashboard = ({
 
 
           if (unregisterError) {
-            console.log(
-              'Admin push token unregister error:',
-              unregisterError.message,
-            );
+            if (__DEV__) {
+              console.error(
+                'Admin push token unregister error:',
+                unregisterError.message,
+              );
+            }
           }
 
 
@@ -146,22 +148,26 @@ const AdminDashboard = ({
           } catch (
             tokenDeleteError
           ) {
-            console.log(
-              'Admin FCM token delete error:',
-              tokenDeleteError?.message ||
-                tokenDeleteError,
-            );
+            if (__DEV__) {
+              console.error(
+                'Admin FCM token delete error:',
+                tokenDeleteError?.message ||
+                  tokenDeleteError,
+              );
+            }
           }
         }
 
       } catch (
         tokenCleanupError
       ) {
-        console.log(
-          'Admin push token cleanup error:',
-          tokenCleanupError?.message ||
-            tokenCleanupError,
-        );
+        if (__DEV__) {
+          console.error(
+            'Admin push token cleanup error:',
+            tokenCleanupError?.message ||
+              tokenCleanupError,
+          );
+        }
       }
 
 
@@ -178,11 +184,13 @@ const AdminDashboard = ({
       }
 
     } catch (error) {
-      console.log(
-        'Admin Logout Error:',
-        error?.message ||
-          error,
-      );
+      if (__DEV__) {
+        console.error(
+          'Admin Logout Error:',
+          error?.message ||
+            error,
+        );
+      }
 
 
       setModal({
@@ -306,10 +314,12 @@ const AdminDashboard = ({
           );
 
         } catch (error) {
-          console.log(
-            'Admin Dashboard Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Admin Dashboard Error:',
+              error.message,
+            );
+          }
 
           setErrorMessage(
             error.message ||

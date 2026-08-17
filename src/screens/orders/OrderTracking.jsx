@@ -177,10 +177,12 @@ const OrderTracking = ({
           );
 
         } catch (error) {
-          console.log(
-            'Order Tracking Error:',
-            error.message,
-          );
+          if (__DEV__) {
+            console.error(
+              'Order Tracking Error:',
+              error.message,
+            );
+          }
 
 
           setErrorMessage(
