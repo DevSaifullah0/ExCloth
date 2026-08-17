@@ -182,13 +182,6 @@ const savePushToken =
 
       return;
     }
-
-
-    if (__DEV__) {
-      console.error(
-        'FCM token registered successfully',
-      );
-    }
   };
 
 
