@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -240,8 +241,7 @@ const WriteReview = ({
       }
 
       return (
-        error?.message ||
-        'Unable to submit your review.'
+        getUserFriendlyError(error, 'Unable to submit your review.')
       );
     };
 
@@ -485,8 +485,7 @@ const WriteReview = ({
             'Review Error',
 
           message:
-            error.message ||
-            'Unable to submit your review.',
+            getUserFriendlyError(error, 'Unable to submit your review.'),
 
           confirmText:
             'Try Again',

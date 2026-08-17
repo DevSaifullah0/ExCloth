@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import React, {
   useState,
 } from 'react';
@@ -276,8 +277,10 @@ const ChangePassword = ({
         showModal(
           'error',
           'Update Failed',
-          error?.message ||
+          getUserFriendlyError(
+            error,
             'Unable to change your password.',
+          ),
         );
 
       } finally {

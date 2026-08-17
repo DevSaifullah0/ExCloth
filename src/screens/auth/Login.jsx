@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -157,8 +158,7 @@ const Login = ({
           title:
             'Login Failed',
           message:
-            error?.message ||
-            'Unable to login.',
+            getUserFriendlyError(error, 'Unable to login.'),
           confirmText:
             'Try Again',
         });

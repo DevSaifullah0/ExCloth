@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -248,8 +249,7 @@ const Signup = ({
           title:
             'Signup Failed',
           message:
-            error?.message ||
-            'Unable to create your account.',
+            getUserFriendlyError(error, 'Unable to create your account.'),
           confirmText:
             'Try Again',
         });

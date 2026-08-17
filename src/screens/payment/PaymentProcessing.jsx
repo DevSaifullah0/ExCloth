@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -120,8 +121,7 @@ const PaymentProcessing = ({
       }
 
       return (
-        error?.message ||
-        'Unable to process the payment.'
+        getUserFriendlyError(error, 'Unable to process the payment.')
       );
     };
 
@@ -320,8 +320,7 @@ const PaymentProcessing = ({
         }
 
         failPayment(
-          error.message ||
-            'Unable to process the payment.',
+          getUserFriendlyError(error, 'Unable to process the payment.'),
         );
       }
     };

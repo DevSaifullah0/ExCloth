@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -602,8 +603,7 @@ const ReturnRequest = ({
 
 
       return (
-        error?.message ||
-        'Unable to submit return request.'
+        getUserFriendlyError(error, 'Unable to submit return request.')
       );
     };
 
@@ -774,8 +774,7 @@ const ReturnRequest = ({
           title:
             'Return Failed',
           message:
-            error.message ||
-            'Unable to submit return request.',
+            getUserFriendlyError(error, 'Unable to submit return request.'),
         });
 
       } finally {

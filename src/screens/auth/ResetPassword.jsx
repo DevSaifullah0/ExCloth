@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -184,8 +185,7 @@ const ResetPassword = ({
 
         Alert.alert(
           'Password Reset Failed',
-          error.message ||
-            'Unable to update your password.',
+          getUserFriendlyError(error, 'Unable to update your password.'),
         );
 
       } finally {

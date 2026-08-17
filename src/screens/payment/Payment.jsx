@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -680,8 +681,7 @@ const Payment = ({
 
 
       return (
-        error?.message ||
-        'Unable to place your order.'
+        getUserFriendlyError(error, 'Unable to place your order.')
       );
     };
 
@@ -962,8 +962,7 @@ const Payment = ({
           type: 'error',
           title: 'Order Failed',
           message:
-            error.message ||
-            'Unable to place your order.',
+            getUserFriendlyError(error, 'Unable to place your order.'),
           confirmText: 'Try Again',
         });
 

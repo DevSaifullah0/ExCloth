@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -119,8 +120,7 @@ const OTP = ({
 
       Alert.alert(
         'Invalid Code',
-        error.message ||
-          'The verification code is invalid or expired.',
+        getUserFriendlyError(error, 'The verification code is invalid or expired.'),
       );
 
     } finally {
@@ -170,8 +170,7 @@ const OTP = ({
 
       Alert.alert(
         'Resend Failed',
-        error.message ||
-          'Unable to resend the verification code.',
+        getUserFriendlyError(error, 'Unable to resend the verification code.'),
       );
 
     } finally {

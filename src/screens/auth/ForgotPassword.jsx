@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -101,8 +102,7 @@ const ForgotPassword = ({
 
         Alert.alert(
           'Reset Failed',
-          error.message ||
-            'Unable to send verification code.',
+          getUserFriendlyError(error, 'Unable to send verification code.'),
         );
 
       } finally {

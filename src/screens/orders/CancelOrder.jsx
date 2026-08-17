@@ -1,3 +1,4 @@
+import { getUserFriendlyError } from '../../utils/getUserFriendlyError';
 import {
   View,
   Text,
@@ -333,8 +334,7 @@ const CancelOrder = ({
       }
 
       return (
-        error?.message ||
-        'Unable to cancel order.'
+        getUserFriendlyError(error, 'Unable to cancel order.')
       );
     };
 
@@ -494,8 +494,7 @@ const CancelOrder = ({
           title:
             'Cancellation Failed',
           message:
-            error.message ||
-            'Unable to cancel order.',
+            getUserFriendlyError(error, 'Unable to cancel order.'),
         });
 
       } finally {
