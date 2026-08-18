@@ -23,6 +23,14 @@ import {
 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
+import {
+  AuthorizationStatus,
+  getMessaging,
+  hasPermission,
+} from '@react-native-firebase/messaging';
+
+import Config from 'react-native-config';
+
 import { supabase } from '../../lib/supabase';
 
 import AppModal from '../../components/common/AppModal';
@@ -106,11 +114,54 @@ const NotificationSettings = ({
       async () => {
         try {
           if (
+            Platform.OS ===
+            'ios'
+          ) {
+            const pushEnabled =
+              String(
+                Config.IOS_PUSH_NOTIFICATIONS_ENABLED ||
+                  '',
+              ).toLowerCase() ===
+              'true';
+
+
+            if (!pushEnabled) {
+              setPermissionStatus(
+                'unavailable',
+              );
+
+              return;
+            }
+
+
+            const status =
+              await hasPermission(
+                getMessaging(),
+              );
+
+
+            setPermissionStatus(
+              status ===
+                  AuthorizationStatus.AUTHORIZED ||
+                status ===
+                  AuthorizationStatus.PROVISIONAL
+                ? 'granted'
+                : status ===
+                    AuthorizationStatus.DENIED
+                ? 'denied'
+                : 'unknown',
+            );
+
+            return;
+          }
+
+
+          if (
             Platform.OS !==
             'android'
           ) {
             setPermissionStatus(
-              'managed',
+              'unavailable',
             );
 
             return;
@@ -495,6 +546,8 @@ const NotificationSettings = ({
             onPress={() =>
               navigation.goBack()
             }
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             activeOpacity={0.8}
             className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100"
           >
@@ -540,9 +593,9 @@ const NotificationSettings = ({
                     : permissionStatus ===
                       'denied'
                     ? 'Permission is disabled'
-                    : Platform.OS ===
-                      'ios'
-                    ? 'Managed by iOS Settings'
+                    : permissionStatus ===
+                      'unavailable'
+                    ? 'Push setup is not configured for this build'
                     : 'Check device settings'
                 }
               </Text>
@@ -553,6 +606,8 @@ const NotificationSettings = ({
             onPress={
               openDeviceSettings
             }
+            accessibilityRole="button"
+            accessibilityLabel="Open notification settings"
             activeOpacity={0.85}
             className="mt-5 h-12 items-center justify-center rounded-2xl bg-white"
           >
@@ -642,6 +697,21 @@ const NotificationSettings = ({
                               savingKey,
                             )
                           }
+                          accessibilityRole="switch"
+                          accessibilityLabel={`${row.title} notifications`}
+                          accessibilityHint={`Turns ${row.title.toLowerCase()} notifications on or off`}
+                          accessibilityState={{
+                            checked:
+                              Boolean(
+                                preferences[
+                                  row.key
+                                ],
+                              ),
+                            disabled:
+                              Boolean(
+                                savingKey,
+                              ),
+                          }}
                           onValueChange={
                             value =>
                               updatePreference(

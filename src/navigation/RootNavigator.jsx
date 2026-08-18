@@ -12,12 +12,6 @@ import notifee, {
   EventType,
 } from '@notifee/react-native';
 
-import {
-  getMessaging,
-  getInitialNotification,
-  onNotificationOpenedApp,
-} from '@react-native-firebase/messaging';
-
 import SplashScreen from '../screens/splash/SplashScreen';
 
 import AuthNavigator from './AuthNavigator';
@@ -25,6 +19,15 @@ import AppNavigator from './AppNavigator';
 import AdminNavigator from './AdminNavigator';
 
 import { useAuth } from '../context/AuthContext';
+
+import {
+  consumeNotificationPress,
+  createRemoteMessageFromNotification,
+} from '../services/notificationPressStore';
+
+import {
+  isPushNotificationsEnabled,
+} from '../utils/pushConfig';
 
 
 const navigationRef =
@@ -55,6 +58,9 @@ const RootNavigator = () => {
 
   const initialNotificationCheckedRef =
     useRef(false);
+
+  const handledNotificationIdRef =
+    useRef(null);
 
 
   useEffect(() => {
@@ -157,30 +163,6 @@ const RootNavigator = () => {
     };
 
 
-  const createRemoteMessageFromNotifee =
-    notification => {
-      return {
-        messageId:
-          notification?.id ||
-          null,
-
-        notification: {
-          title:
-            notification?.title ||
-            'ExCloth',
-
-          body:
-            notification?.body ||
-            'You have a new notification.',
-        },
-
-        data:
-          notification?.data ||
-          {},
-      };
-    };
-
-
   const handleNotificationPress =
     remoteMessage => {
       if (!remoteMessage) {
@@ -204,31 +186,28 @@ const RootNavigator = () => {
       const data =
         remoteMessage.data || {};
 
-      const type =
-        String(
-          data.type || '',
-        ).toLowerCase();
+      const notificationId =
+        data.notification_id ||
+        remoteMessage.messageId ||
+        null;
 
+
+      if (
+        notificationId &&
+        handledNotificationIdRef.current ===
+          notificationId
+      ) {
+        return;
+      }
+
+
+      if (notificationId) {
+        handledNotificationIdRef.current =
+          notificationId;
+      }
 
       if (isAdminRef.current) {
         if (
-          type === 'order' &&
-          data.order_id
-        ) {
-          navigationRef.navigate(
-            'AdminOrderDetails',
-            {
-              orderId:
-                data.order_id,
-            },
-          );
-
-          return;
-        }
-
-
-        if (
-          type === 'return' &&
           data.return_request_id
         ) {
           navigationRef.navigate(
@@ -243,6 +222,18 @@ const RootNavigator = () => {
         }
 
 
+        if (data.order_id) {
+          navigationRef.navigate(
+            'AdminOrderDetails',
+            {
+              orderId:
+                data.order_id,
+            },
+          );
+
+          return;
+        }
+
         navigationRef.navigate(
           'AdminDashboard',
         );
@@ -252,23 +243,6 @@ const RootNavigator = () => {
 
 
       if (
-        type === 'order' &&
-        data.order_id
-      ) {
-        navigationRef.navigate(
-          'OrderDetails',
-          {
-            orderId:
-              data.order_id,
-          },
-        );
-
-        return;
-      }
-
-
-      if (
-        type === 'return' &&
         data.return_request_id
       ) {
         navigationRef.navigate(
@@ -282,6 +256,18 @@ const RootNavigator = () => {
         return;
       }
 
+
+      if (data.order_id) {
+        navigationRef.navigate(
+          'OrderDetails',
+          {
+            orderId:
+              data.order_id,
+          },
+        );
+
+        return;
+      }
 
       const notification =
         createNotificationObject(
@@ -299,19 +285,11 @@ const RootNavigator = () => {
 
 
   useEffect(() => {
-    const messaging =
-      getMessaging();
-
-
-    const unsubscribeOpenedApp =
-      onNotificationOpenedApp(
-        messaging,
-        remoteMessage => {
-          handleNotificationPress(
-            remoteMessage,
-          );
-        },
-      );
+    if (
+      !isPushNotificationsEnabled()
+    ) {
+      return undefined;
+    }
 
 
     const unsubscribeForegroundEvent =
@@ -338,7 +316,7 @@ const RootNavigator = () => {
 
 
           const remoteMessage =
-            createRemoteMessageFromNotifee(
+            createRemoteMessageFromNotification(
               notification,
             );
 
@@ -350,7 +328,7 @@ const RootNavigator = () => {
       );
 
 
-    const checkInitialNotification =
+    const checkPendingNotification =
       async () => {
         if (
           initialNotificationCheckedRef.current
@@ -364,22 +342,38 @@ const RootNavigator = () => {
 
 
         try {
-          const remoteMessage =
-            await getInitialNotification(
-              messaging,
+          const storedRemoteMessage =
+            await consumeNotificationPress();
+
+
+          if (storedRemoteMessage) {
+            handleNotificationPress(
+              storedRemoteMessage,
+            );
+          }
+
+
+          const initialNotification =
+            await notifee.getInitialNotification();
+
+
+          const initialRemoteMessage =
+            createRemoteMessageFromNotification(
+              initialNotification
+                ?.notification,
             );
 
 
-          if (remoteMessage) {
+          if (initialRemoteMessage) {
             handleNotificationPress(
-              remoteMessage,
+              initialRemoteMessage,
             );
           }
 
         } catch (error) {
           if (__DEV__) {
             console.error(
-              'Initial notification error:',
+              'Pending notification error:',
               error?.message || error,
             );
           }
@@ -387,11 +381,10 @@ const RootNavigator = () => {
       };
 
 
-    checkInitialNotification();
+    checkPendingNotification();
 
 
     return () => {
-      unsubscribeOpenedApp();
       unsubscribeForegroundEvent();
     };
 

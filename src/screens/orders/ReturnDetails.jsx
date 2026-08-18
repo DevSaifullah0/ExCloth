@@ -445,10 +445,20 @@ const ReturnDetails = ({
     }
 
 
+    // Use a unique channel name per mounted screen instance.
+    // Supabase reuses channels with the same topic, and adding
+    // postgres_changes handlers to an already subscribed channel
+    // throws: "cannot add postgres_changes callbacks after subscribe()".
+    const channelName =
+      `return-request-${returnRequestId}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
+
+
     const channel =
       supabase
         .channel(
-          `return-request-${returnRequestId}`,
+          channelName,
         )
         .on(
           'postgres_changes',
@@ -1309,35 +1319,21 @@ const ReturnDetails = ({
         </View>
 
 
-        {/* ORDER DETAILS */}
+        {/* RETURN SUCCESS */}
 
-        {order?.id ? (
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate(
-                'OrderDetails',
-                {
-                  orderId:
-                    order.id,
-                },
-              )
-            }
-            activeOpacity={0.85}
-            className="mt-6 h-14 flex-row items-center justify-center rounded-xl bg-black"
-          >
-
+        {!isRejected &&
+        !isCancelled ? (
+          <View className="mt-6 h-14 flex-row items-center justify-center rounded-xl bg-black">
             <Ionicons
-              name="receipt-outline"
+              name="checkmark-circle-outline"
               size={20}
               color="white"
             />
 
-
             <Text className="ml-2 text-base font-bold text-white">
-              View Order Details
+              Returned Successfully
             </Text>
-
-          </TouchableOpacity>
+          </View>
         ) : null}
 
       </ScrollView>

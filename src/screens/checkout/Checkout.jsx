@@ -94,6 +94,7 @@ const Checkout = ({
     title: '',
     message: '',
     confirmText: 'OK',
+    action: 'close',
   });
 
 
@@ -102,6 +103,7 @@ const Checkout = ({
     title = '',
     message = '',
     confirmText = 'OK',
+    action = 'close',
   }) => {
     setModal({
       visible: true,
@@ -109,6 +111,7 @@ const Checkout = ({
       title,
       message,
       confirmText,
+      action,
     });
   };
 
@@ -143,6 +146,10 @@ const Checkout = ({
           }
 
           if (!user) {
+            setSelectedAddress(null);
+            setCartItems([]);
+            setAppliedCoupon(null);
+
             showModal({
               type: 'warning',
               title: 'Login Required',
@@ -508,12 +515,18 @@ const Checkout = ({
           }
 
 
+          setSelectedAddress(null);
+          setCartItems([]);
+          setAppliedCoupon(null);
+
+
           showModal({
             type: 'error',
             title: 'Checkout Error',
             message:
               'Unable to load checkout information.',
             confirmText: 'Try Again',
+            action: 'retryCheckout',
           });
 
         } finally {
@@ -543,6 +556,36 @@ const Checkout = ({
       ],
     ),
   );
+
+
+  const handleModalConfirm =
+    () => {
+      const action =
+        modal.action;
+
+      closeModal();
+
+      if (
+        action ===
+        'retryCheckout'
+      ) {
+        loadCheckout();
+
+        return;
+      }
+
+      if (
+        action ===
+        'reviewCart'
+      ) {
+        navigation.navigate(
+          'MainTabs',
+          {
+            screen: 'Cart',
+          },
+        );
+      }
+    };
 
 
   // ==========================================
@@ -707,6 +750,7 @@ const Checkout = ({
           message:
             'Some products are unavailable or exceed available stock. Please review your cart first.',
           confirmText: 'Review Cart',
+          action: 'reviewCart',
         });
 
         return;
@@ -1385,7 +1429,7 @@ const Checkout = ({
           modal.confirmText
         }
         onConfirm={
-          closeModal
+          handleModalConfirm
         }
         onCancel={
           closeModal

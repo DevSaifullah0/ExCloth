@@ -27,6 +27,9 @@ import {
 
 import { supabase } from '../../lib/supabase';
 import AppModal from '../../components/common/AppModal';
+import {
+  isPushNotificationsEnabled,
+} from '../../utils/pushConfig';
 
 const Profile = ({ navigation }) => {
   const [profile, setProfile] = useState(null);
@@ -156,52 +159,56 @@ const Profile = ({ navigation }) => {
 
 
       try {
-        const messaging =
-          getMessaging();
+        if (
+          isPushNotificationsEnabled()
+        ) {
+          const messaging =
+            getMessaging();
 
-        const currentPushToken =
-          await getToken(
-            messaging,
-          );
-
-
-        if (currentPushToken) {
-          const {
-            error:
-              unregisterError,
-          } =
-            await supabase.rpc(
-              'unregister_push_token_secure',
-              {
-                p_token:
-                  currentPushToken,
-              },
-            );
-
-
-          if (unregisterError) {
-            if (__DEV__) {
-              console.error(
-                'Push token unregister error:',
-                unregisterError.message,
-              );
-            }
-          }
-
-
-          try {
-            await deleteToken(
+          const currentPushToken =
+            await getToken(
               messaging,
             );
-          } catch (
-            tokenDeleteError
-          ) {
-            if (__DEV__) {
-              console.error(
-                'FCM Token Delete Error:',
-                tokenDeleteError?.message ||
-                  tokenDeleteError,
+
+
+          if (currentPushToken) {
+            const {
+              error:
+                unregisterError,
+            } =
+              await supabase.rpc(
+                'unregister_push_token_secure',
+                {
+                  p_token:
+                    currentPushToken,
+                },
               );
+
+
+            if (unregisterError) {
+              if (__DEV__) {
+                console.error(
+                  'Push token unregister error:',
+                  unregisterError.message,
+                );
+              }
+            }
+
+
+            try {
+              await deleteToken(
+                messaging,
+              );
+            } catch (
+              tokenDeleteError
+            ) {
+              if (__DEV__) {
+                console.error(
+                  'FCM Token Delete Error:',
+                  tokenDeleteError?.message ||
+                    tokenDeleteError,
+                );
+              }
             }
           }
         }
@@ -681,11 +688,11 @@ const Profile = ({ navigation }) => {
                     <Ionicons
                       name="log-out-outline"
                       size={19}
-                      color="black"
+                      color="red"
                     />
                   </View>
 
-                  <Text className="ml-3 text-base font-extrabold text-black">
+                  <Text className="ml-3 text-base font-extrabold text-red-400">
                     Logout
                   </Text>
                 </>

@@ -66,7 +66,7 @@ This is one way to run your app — you can also build it directly from Android 
 
 Now that you have successfully run the app, let's make changes!
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Open `App.jsx` in your text editor of choice and make changes. When you save, the app updates through [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
 
 When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
 
@@ -95,9 +95,6 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
-
-
-Payment integrations are currently implemented as demonstration/test flows. No real payment is processed.# ExCloth
 
 
 # ExCloth
@@ -202,9 +199,11 @@ I am also using Row Level Security and secure PostgreSQL functions for operation
 
 Sensitive operations such as admin actions are protected on the backend instead of relying only on hidden screens or navigation checks.
 
+The checked-in Supabase folder now contains additive safety migrations and contract tests, but it is not yet a complete export of the hosted schema and Edge Functions. Follow `supabase/README.md` before treating a clean clone as production-reproducible.
+
 ## Push Notifications
 
-Android push notifications are implemented using Firebase Cloud Messaging and Notifee.
+Android push notifications are implemented using Firebase Cloud Messaging and Notifee. The iOS code path is release-gated until real Apple/Firebase credentials are installed; see `ios/PUSH_NOTIFICATIONS_SETUP.md`.
 
 The app currently supports notifications related to things such as:
 
@@ -249,7 +248,7 @@ The customer can follow the progress while the admin handles the return from the
 
 ## Payments
 
-The application currently contains payment flows for:
+Development builds contain demonstration flows for:
 
 - Cash on Delivery
 - Card Payment
@@ -257,9 +256,9 @@ The application currently contains payment flows for:
 - JazzCash
 - Bank Transfer
 
-These are currently part of the application flow and demonstration of the checkout system.
+Release builds expose Cash on Delivery only. Online methods and their demo input forms fail closed until an approved provider adapter and verified backend flow are implemented.
 
-Production payment processing will require integration with an approved payment provider before real transactions are enabled.
+Production payment processing requires merchant/provider onboarding, server-side payment verification, signed webhooks, reconciliation, and atomic order idempotency before real transactions are enabled. See `docs/technical/PAYMENT_ORDER_HARDENING.md`.
 
 Sensitive information such as card CVV, PIN, OTP, or banking passwords is not intended to be stored in the application database.
 

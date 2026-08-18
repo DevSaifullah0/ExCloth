@@ -9,9 +9,12 @@ import {
 
 import React, {
   useCallback,
-  useEffect,
   useState,
 } from 'react';
+
+import {
+  useFocusEffect,
+} from '@react-navigation/native';
 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
@@ -281,6 +284,68 @@ const OrderDetails = ({
           paymentData,
         );
 
+
+        // =====================================
+        // LATEST RETURN REQUEST
+        // =====================================
+
+        const {
+          data:
+            returnData,
+          error:
+            returnError,
+        } =
+          await supabase
+            .from(
+              'return_requests',
+            )
+            .select(`
+              id,
+              order_id,
+              user_id,
+              status,
+              estimated_refund_amount,
+              refund_amount,
+              refund_method,
+              refund_status,
+              requested_at,
+              approved_at,
+              rejected_at,
+              pickup_at,
+              received_at,
+              refunded_at,
+              created_at,
+              updated_at
+            `)
+            .eq(
+              'order_id',
+              orderId,
+            )
+            .eq(
+              'user_id',
+              user.id,
+            )
+            .order(
+              'requested_at',
+              {
+                ascending:
+                  false,
+              },
+            )
+            .limit(1)
+            .maybeSingle();
+
+
+        if (returnError) {
+          throw returnError;
+        }
+
+
+        setReturnRequest(
+          returnData ||
+            null,
+        );
+
       } catch (error) {
         if (__DEV__) {
           console.error(
@@ -303,12 +368,19 @@ const OrderDetails = ({
 
 
   // ==========================================
-  // INITIAL LOAD
+  // REFRESH ON SCREEN FOCUS
   // ==========================================
 
-  useEffect(() => {
-    fetchOrderDetails();
-  }, [fetchOrderDetails]);
+  useFocusEffect(
+    useCallback(
+      () => {
+        fetchOrderDetails();
+      },
+      [
+        fetchOrderDetails,
+      ],
+    ),
+  );
 
 
   // ==========================================
@@ -412,27 +484,10 @@ const OrderDetails = ({
   // RETURN ELIGIBILITY
   // ==========================================
 
-  const returnStatus =
-    String(
-      returnRequest?.status ||
-        '',
-    )
-      .trim()
-      .toLowerCase();
-
-
-  const returnIsClosed =
-    ['rejected', 'cancelled']
-      .includes(
-        returnStatus,
-      );
-
-
-  const hasActiveReturn =
+  const hasExistingReturn =
     Boolean(
       returnRequest?.id,
-    ) &&
-    !returnIsClosed;
+    );
 
 
   const returnDeadline =
@@ -463,7 +518,7 @@ const OrderDetails = ({
     ) &&
     new Date() <=
       returnDeadline &&
-    !hasActiveReturn;
+    !hasExistingReturn;
 
 
   // ==========================================
@@ -761,10 +816,8 @@ const OrderDetails = ({
                   />
 
                   <Text className="ml-2 font-extrabold text-black">
-                    {returnRequest?.id
-                      ? 'Request Return Again'
-                      : 'Request Return'}
-                  </Text>
+                      Request Return
+                    </Text>
                 </TouchableOpacity>
               ) : null}
             </View>

@@ -10,6 +10,7 @@ import {
 
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -29,93 +30,95 @@ const Search = ({ navigation }) => {
   const [errorMessage, setErrorMessage] =
     useState('');
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      searchProducts();
-    }, 400);
+  const searchRequestIdRef =
+    useRef(0);
 
-    return () => {
-      clearTimeout(timer);
-    };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
-
-  const searchProducts = async () => {
+  const searchProducts = async (
+    searchText,
+    requestId,
+  ) => {
     try {
-      const searchText = search.trim();
+      const normalizedSearchText =
+        String(
+          searchText || '',
+        ).trim();
 
-      setErrorMessage('');
-
-      if (!searchText) {
-        setProducts([]);
-        setLoading(false);
+      if (!normalizedSearchText) {
         return;
       }
 
-      setLoading(true);
 
-      const {
-        data: nameResults,
-        error: nameError,
-      } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          slug,
-          description,
-          price,
-          old_price,
-          image_url,
-          stock_quantity,
-          is_popular,
-          is_new,
-          is_featured
-        `)
-        .eq('is_active', true)
-        .ilike(
-          'name',
-          `%${searchText}%`,
-        )
-        .limit(20);
+      const [
+        nameResult,
+        descriptionResult,
+      ] = await Promise.all([
+        supabase
+          .from('products')
+          .select(`
+            id,
+            name,
+            slug,
+            description,
+            price,
+            old_price,
+            image_url,
+            stock_quantity,
+            is_popular,
+            is_new,
+            is_featured
+          `)
+          .eq('is_active', true)
+          .ilike(
+            'name',
+            `%${normalizedSearchText}%`,
+          )
+          .limit(20),
 
-      if (nameError) {
-        throw nameError;
+        supabase
+          .from('products')
+          .select(`
+            id,
+            name,
+            slug,
+            description,
+            price,
+            old_price,
+            image_url,
+            stock_quantity,
+            is_popular,
+            is_new,
+            is_featured
+          `)
+          .eq('is_active', true)
+          .ilike(
+            'description',
+            `%${normalizedSearchText}%`,
+          )
+          .limit(20),
+      ]);
+
+
+      if (nameResult.error) {
+        throw nameResult.error;
       }
 
-      const {
-        data: descriptionResults,
-        error: descriptionError,
-      } = await supabase
-        .from('products')
-        .select(`
-          id,
-          name,
-          slug,
-          description,
-          price,
-          old_price,
-          image_url,
-          stock_quantity,
-          is_popular,
-          is_new,
-          is_featured
-        `)
-        .eq('is_active', true)
-        .ilike(
-          'description',
-          `%${searchText}%`,
-        )
-        .limit(20);
 
-      if (descriptionError) {
-        throw descriptionError;
+      if (descriptionResult.error) {
+        throw descriptionResult.error;
+      }
+
+
+      if (
+        requestId !==
+        searchRequestIdRef.current
+      ) {
+        return;
       }
 
       const combinedProducts = [
-        ...(nameResults || []),
-        ...(descriptionResults || []),
+        ...(nameResult.data || []),
+        ...(descriptionResult.data || []),
       ];
 
       const uniqueProducts = Array.from(
@@ -129,6 +132,13 @@ const Search = ({ navigation }) => {
 
       setProducts(uniqueProducts);
     } catch (error) {
+      if (
+        requestId !==
+        searchRequestIdRef.current
+      ) {
+        return;
+      }
+
       if (__DEV__) {
         console.error(
           'Search Error:',
@@ -140,14 +150,92 @@ const Search = ({ navigation }) => {
         'Unable to search products.',
       );
     } finally {
-      setLoading(false);
+      if (
+        requestId ===
+        searchRequestIdRef.current
+      ) {
+        setLoading(false);
+      }
     }
   };
 
+
+  useEffect(() => {
+    const searchText =
+      search.trim();
+
+    const requestId =
+      searchRequestIdRef.current +
+      1;
+
+    searchRequestIdRef.current =
+      requestId;
+
+    setErrorMessage('');
+
+    if (!searchText) {
+      setProducts([]);
+      setLoading(false);
+
+      return undefined;
+    }
+
+    setLoading(true);
+
+    const timer = setTimeout(() => {
+      searchProducts(
+        searchText,
+        requestId,
+      );
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+
+      if (
+        searchRequestIdRef.current ===
+        requestId
+      ) {
+        searchRequestIdRef.current +=
+          1;
+      }
+    };
+
+  }, [search]);
+
+
+  const retrySearch = () => {
+    const searchText =
+      search.trim();
+
+    if (!searchText) {
+      return;
+    }
+
+    const requestId =
+      searchRequestIdRef.current +
+      1;
+
+    searchRequestIdRef.current =
+      requestId;
+
+    setErrorMessage('');
+    setLoading(true);
+
+    searchProducts(
+      searchText,
+      requestId,
+    );
+  };
+
   const clearSearch = () => {
+    searchRequestIdRef.current +=
+      1;
+
     setSearch('');
     setProducts([]);
     setErrorMessage('');
+    setLoading(false);
   };
 
   const getSalePercentage =
@@ -305,7 +393,7 @@ const Search = ({ navigation }) => {
             </Text>
 
             <TouchableOpacity
-              onPress={searchProducts}
+              onPress={retrySearch}
               activeOpacity={0.85}
               className="mt-5 rounded-xl bg-black px-6 py-3"
             >

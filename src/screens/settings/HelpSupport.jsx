@@ -17,7 +17,13 @@ import {
 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
+import Config from 'react-native-config';
+
 import AppModal from '../../components/common/AppModal';
+
+import {
+  buildSupportEmailUrl,
+} from '../../utils/externalLinks';
 
 
 const FAQS = [
@@ -78,19 +84,48 @@ const HelpSupport = ({
 
   const contactSupport =
     async () => {
+      const emailUrl =
+        buildSupportEmailUrl(
+          Config.SUPPORT_EMAIL,
+          {
+            subject:
+              'ExCloth Support Request',
+            body:
+              'Please describe your issue here:\n\n',
+          },
+        );
+
+
+      if (!emailUrl) {
+        setModal({
+          visible: true,
+          type: 'info',
+          title:
+            'Support Unavailable',
+          message:
+            'Email support is not configured right now. Please try again later.',
+        });
+
+        return;
+      }
+
+
       try {
-        const subject =
-          encodeURIComponent(
-            'ExCloth Support Request',
+        const canOpen =
+          await Linking.canOpenURL(
+            emailUrl,
           );
 
-        const body =
-          encodeURIComponent(
-            'Please describe your issue here:\n\n',
+
+        if (!canOpen) {
+          throw new Error(
+            'No email client is available.',
           );
+        }
+
 
         await Linking.openURL(
-          `mailto:?subject=${subject}&body=${body}`,
+          emailUrl,
         );
 
       } catch (error) {
@@ -133,6 +168,8 @@ const HelpSupport = ({
             onPress={() =>
               navigation.goBack()
             }
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
             activeOpacity={0.8}
             className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100"
           >
@@ -173,9 +210,12 @@ const HelpSupport = ({
           </Text>
 
           <TouchableOpacity
+            testID="contact-support-button"
             onPress={
               contactSupport
             }
+            accessibilityRole="button"
+            accessibilityLabel="Contact support by email"
             activeOpacity={0.85}
             className="mt-5 h-12 flex-row items-center justify-center rounded-2xl bg-white"
           >
@@ -218,6 +258,13 @@ const HelpSupport = ({
                         : index,
                     )
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    item.question
+                  }
+                  accessibilityState={{
+                    expanded: isOpen,
+                  }}
                   activeOpacity={0.85}
                   className="mb-3 rounded-2xl bg-gray-100 p-5"
                 >

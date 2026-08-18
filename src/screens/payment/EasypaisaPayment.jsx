@@ -22,6 +22,10 @@ import {
 
 import AppModal from '../../components/common/AppModal';
 
+import OnlineMethodUnavailable from './OnlineMethodUnavailable';
+
+import useNavigationSubmissionGuard from '../../hooks/useNavigationSubmissionGuard';
+
 
 const EasypaisaPayment = ({
   navigation,
@@ -41,6 +45,8 @@ const EasypaisaPayment = ({
     checkoutSubtotal = 0,
     checkoutDiscount = 0,
     checkoutTotal = 0,
+    orderIdempotencyKey = null,
+    paymentFlowMode = null,
   } = route.params || {};
 
   const [
@@ -48,10 +54,13 @@ const EasypaisaPayment = ({
     setMobileNumber,
   ] = useState('');
 
-  const [
+  const {
     submitting,
-    setSubmitting,
-  ] = useState(false);
+    beginSubmission,
+  } =
+    useNavigationSubmissionGuard(
+      navigation,
+    );
 
   const [
     modal,
@@ -128,6 +137,10 @@ const EasypaisaPayment = ({
       return;
     }
 
+    if (!__DEV__) {
+      return;
+    }
+
     if (!shippingAddress?.id) {
       showModal({
         type: 'warning',
@@ -160,7 +173,9 @@ const EasypaisaPayment = ({
       return;
     }
 
-    setSubmitting(true);
+    if (!beginSubmission()) {
+      return;
+    }
 
     navigation.navigate(
       'PaymentProcessing',
@@ -186,11 +201,26 @@ const EasypaisaPayment = ({
         checkoutSubtotal,
         checkoutDiscount,
         checkoutTotal,
+        orderIdempotencyKey,
+        paymentFlowMode,
       },
     );
 
-    setSubmitting(false);
   };
+
+
+  if (!__DEV__) {
+    return (
+      <OnlineMethodUnavailable
+        navigation={
+          navigation
+        }
+        paymentMethodName={
+          paymentMethodName
+        }
+      />
+    );
+  }
 
 
   return (
@@ -465,14 +495,13 @@ const EasypaisaPayment = ({
               Continue Payment
             </Text>
 
-            <Ionicons
-              name="arrow-forward-outline"
-              size={19}
-              color="white"
-              style={{
-                marginLeft: 8,
-              }}
-            />
+            <View className="ml-2">
+              <Ionicons
+                name="arrow-forward-outline"
+                size={19}
+                color="white"
+              />
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

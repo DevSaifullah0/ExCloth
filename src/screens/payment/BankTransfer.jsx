@@ -22,6 +22,10 @@ import {
 
 import AppModal from '../../components/common/AppModal';
 
+import OnlineMethodUnavailable from './OnlineMethodUnavailable';
+
+import useNavigationSubmissionGuard from '../../hooks/useNavigationSubmissionGuard';
+
 
 const BankTransfer = ({
   navigation,
@@ -52,6 +56,10 @@ const BankTransfer = ({
     checkoutDiscount = 0,
 
     checkoutTotal = 0,
+
+    orderIdempotencyKey = null,
+
+    paymentFlowMode = null,
   } = route.params || {};
 
 
@@ -67,10 +75,13 @@ const BankTransfer = ({
   ] = useState('');
 
 
-  const [
+  const {
     submitting,
-    setSubmitting,
-  ] = useState(false);
+    beginSubmission,
+  } =
+    useNavigationSubmissionGuard(
+      navigation,
+    );
 
 
   // ==========================================
@@ -140,6 +151,11 @@ const BankTransfer = ({
       }
 
 
+      if (!__DEV__) {
+        return;
+      }
+
+
       if (
         !shippingAddress?.id
       ) {
@@ -204,7 +220,9 @@ const BankTransfer = ({
       }
 
 
-      setSubmitting(true);
+      if (!beginSubmission()) {
+        return;
+      }
 
 
       navigation.navigate(
@@ -240,12 +258,29 @@ const BankTransfer = ({
             transferReference:
               reference.trim(),
           },
+
+          orderIdempotencyKey,
+
+          paymentFlowMode,
         },
       );
 
 
-      setSubmitting(false);
     };
+
+
+  if (!__DEV__) {
+    return (
+      <OnlineMethodUnavailable
+        navigation={
+          navigation
+        }
+        paymentMethodName={
+          paymentMethodName
+        }
+      />
+    );
+  }
 
 
   return (
@@ -588,14 +623,13 @@ const BankTransfer = ({
               Confirm Test Transfer
             </Text>
 
-            <Ionicons
-              name="arrow-forward-outline"
-              size={19}
-              color="white"
-              style={{
-                marginLeft: 8,
-              }}
-            />
+            <View className="ml-2">
+              <Ionicons
+                name="arrow-forward-outline"
+                size={19}
+                color="white"
+              />
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

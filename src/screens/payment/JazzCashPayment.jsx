@@ -22,6 +22,10 @@ import {
 
 import AppModal from '../../components/common/AppModal';
 
+import OnlineMethodUnavailable from './OnlineMethodUnavailable';
+
+import useNavigationSubmissionGuard from '../../hooks/useNavigationSubmissionGuard';
+
 
 const JazzCashPayment = ({
   navigation,
@@ -52,6 +56,10 @@ const JazzCashPayment = ({
     checkoutDiscount = 0,
 
     checkoutTotal = 0,
+
+    orderIdempotencyKey = null,
+
+    paymentFlowMode = null,
   } = route.params || {};
 
 
@@ -61,10 +69,13 @@ const JazzCashPayment = ({
   ] = useState('');
 
 
-  const [
+  const {
     submitting,
-    setSubmitting,
-  ] = useState(false);
+    beginSubmission,
+  } =
+    useNavigationSubmissionGuard(
+      navigation,
+    );
 
 
   // ==========================================
@@ -148,6 +159,11 @@ const JazzCashPayment = ({
       }
 
 
+      if (!__DEV__) {
+        return;
+      }
+
+
       if (
         !shippingAddress?.id
       ) {
@@ -190,7 +206,9 @@ const JazzCashPayment = ({
       }
 
 
-      setSubmitting(true);
+      if (!beginSubmission()) {
+        return;
+      }
 
 
       navigation.navigate(
@@ -228,12 +246,29 @@ const JazzCashPayment = ({
                 -3,
               )}`,
           },
+
+          orderIdempotencyKey,
+
+          paymentFlowMode,
         },
       );
 
 
-      setSubmitting(false);
     };
+
+
+  if (!__DEV__) {
+    return (
+      <OnlineMethodUnavailable
+        navigation={
+          navigation
+        }
+        paymentMethodName={
+          paymentMethodName
+        }
+      />
+    );
+  }
 
 
   return (
@@ -551,14 +586,13 @@ const JazzCashPayment = ({
               Continue Payment
             </Text>
 
-            <Ionicons
-              name="arrow-forward-outline"
-              size={19}
-              color="white"
-              style={{
-                marginLeft: 8,
-              }}
-            />
+            <View className="ml-2">
+              <Ionicons
+                name="arrow-forward-outline"
+                size={19}
+                color="white"
+              />
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

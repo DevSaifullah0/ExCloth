@@ -273,10 +273,10 @@ const AdminProductDetails = ({
           Array.isArray(data)
             ? data
             : Array.isArray(
-                data?.categories,
-              )
-            ? data.categories
-            : [];
+              data?.categories,
+            )
+              ? data.categories
+              : [];
 
 
         setCategories(
@@ -309,22 +309,22 @@ const AdminProductDetails = ({
 
       setDescription(
         product.description ||
-          '',
+        '',
       );
 
       setPrice(
         product.price != null
           ? String(
-              product.price,
-            )
+            product.price,
+          )
           : '',
       );
 
       setOldPrice(
         product.old_price != null
           ? String(
-              product.old_price,
-            )
+            product.old_price,
+          )
           : '',
       );
 
@@ -341,7 +341,7 @@ const AdminProductDetails = ({
       if (
         numericProductOldPrice > 0 &&
         numericProductOldPrice >
-          numericProductPrice
+        numericProductPrice
       ) {
         const calculatedSale =
           ((numericProductOldPrice -
@@ -367,7 +367,7 @@ const AdminProductDetails = ({
       setStockQuantity(
         String(
           product.stock_quantity ??
-            0,
+          0,
         ),
       );
 
@@ -391,12 +391,12 @@ const AdminProductDetails = ({
 
       setIsActive(
         product.is_active !==
-          false,
+        false,
       );
 
       setCurrentImageUrl(
         product.image_url ||
-          '',
+        '',
       );
 
 
@@ -406,15 +406,15 @@ const AdminProductDetails = ({
         )
           ? data.category_ids
           : Array.isArray(
-              product.categories,
-            )
-          ? product.categories
+            product.categories,
+          )
+            ? product.categories
               .map(
                 category =>
                   category?.id,
               )
               .filter(Boolean)
-          : [];
+            : [];
 
 
       setSelectedCategoryIds(
@@ -447,17 +447,17 @@ const AdminProductDetails = ({
               String(
                 variant
                   .stock_quantity ??
-                  0,
+                0,
               ),
             price_adjustment:
               String(
                 variant
                   .price_adjustment ??
-                  0,
+                0,
               ),
             is_active:
               variant.is_active !==
-                false,
+              false,
           }),
         ),
       );
@@ -482,7 +482,7 @@ const AdminProductDetails = ({
               user,
             },
             error:
-              userError,
+            userError,
           } =
             await supabase.auth
               .getUser();
@@ -577,13 +577,13 @@ const AdminProductDetails = ({
         current =>
           current.includes(id)
             ? current.filter(
-                item =>
-                  item !== id,
-              )
+              item =>
+                item !== id,
+            )
             : [
-                ...current,
-                id,
-              ],
+              ...current,
+              id,
+            ],
       );
     };
 
@@ -602,12 +602,12 @@ const AdminProductDetails = ({
               variantIndex,
             ) =>
               variantIndex ===
-              index
+                index
                 ? {
-                    ...variant,
-                    [key]:
-                      value,
-                  }
+                  ...variant,
+                  [key]:
+                    value,
+                }
                 : variant,
           ),
       );
@@ -897,7 +897,7 @@ const AdminProductDetails = ({
             numericOldPrice,
           ) ||
           numericOldPrice <=
-            numericPrice
+          numericPrice
         ) {
           throw new Error(
             'Sale price could not be calculated correctly.',
@@ -933,14 +933,14 @@ const AdminProductDetails = ({
       const path =
         String(url).slice(
           index +
-            marker.length,
+          marker.length,
         );
 
 
       return path
         ? decodeURIComponent(
-            path,
-          )
+          path,
+        )
         : null;
     };
 
@@ -979,7 +979,7 @@ const AdminProductDetails = ({
         ) {
           throw new Error(
             result.errorMessage ||
-              'Unable to select image.',
+            'Unable to select image.',
           );
         }
 
@@ -1017,7 +1017,7 @@ const AdminProductDetails = ({
         if (
           Number(
             asset.fileSize ||
-              0,
+            0,
           ) >
           MAX_IMAGE_BYTES
         ) {
@@ -1080,7 +1080,7 @@ const AdminProductDetails = ({
 
         const extension =
           extensionMap[
-            selectedImage.type
+          selectedImage.type
           ] ||
           'jpg';
 
@@ -1093,7 +1093,7 @@ const AdminProductDetails = ({
 
         const {
           error:
-            uploadError,
+          uploadError,
         } =
           await supabase.storage
             .from(
@@ -1123,7 +1123,7 @@ const AdminProductDetails = ({
 
         const {
           data:
-            publicData,
+          publicData,
         } =
           supabase.storage
             .from(
@@ -1148,7 +1148,7 @@ const AdminProductDetails = ({
 
         const {
           error:
-            imageSaveError,
+          imageSaveError,
         } =
           await supabase.rpc(
             'set_admin_product_image_secure',
@@ -1188,7 +1188,7 @@ const AdminProductDetails = ({
         ) {
           const {
             error:
-              removeOldError,
+            removeOldError,
           } =
             await supabase.storage
               .from(
@@ -1282,8 +1282,8 @@ const AdminProductDetails = ({
               p_old_price:
                 oldPrice.trim()
                   ? Number(
-                      oldPrice,
-                    )
+                    oldPrice,
+                  )
                   : null,
 
               p_sku:
@@ -1321,8 +1321,8 @@ const AdminProductDetails = ({
         const savedProductId =
           Number(
             data?.product_id ??
-              data?.id ??
-              currentProductId,
+            data?.id ??
+            currentProductId,
           );
 
 
@@ -1404,12 +1404,12 @@ const AdminProductDetails = ({
       variant,
       index,
     ) => {
-    if (
-      saving ||
-      imageUploading
-    ) {
-      return;
-    }
+      if (
+        saving ||
+        imageUploading
+      ) {
+        return;
+      }
 
       if (
         !currentProductId
@@ -1427,7 +1427,7 @@ const AdminProductDetails = ({
         const adjustment =
           Number(
             variant.price_adjustment ||
-              0,
+            0,
           );
 
 
@@ -1507,8 +1507,8 @@ const AdminProductDetails = ({
           index,
           'id',
           data?.variant_id ??
-            data?.id ??
-            variant.id,
+          data?.id ??
+          variant.id,
         );
 
 
@@ -1539,6 +1539,166 @@ const AdminProductDetails = ({
       } finally {
         setSaving(false);
       }
+    };
+
+
+  const deleteProduct =
+    () => {
+      if (
+        !currentProductId ||
+        saving ||
+        imageUploading
+      ) {
+        return;
+      }
+
+
+      showModal({
+        type: 'warning',
+        title:
+          'Delete Product?',
+        message:
+          'This product will be permanently removed. This action cannot be undone.',
+        confirmText:
+          'Delete Product',
+        cancelText:
+          'Keep Product',
+        showCancel:
+          true,
+        onConfirm:
+          async () => {
+            try {
+              setSaving(
+                true,
+              );
+
+
+              const productImagePath =
+                getStoragePathFromUrl(
+                  currentImageUrl,
+                );
+
+
+              const {
+                data: deleteData,
+                error: deleteError,
+              } =
+                await supabase.rpc(
+                  'delete_admin_product_secure',
+                  {
+                    p_product_id:
+                      currentProductId,
+                  },
+                );
+
+              if (deleteError) {
+                throw deleteError;
+              }
+
+              if (!deleteData?.success) {
+                throw new Error(
+                  'Product could not be deleted.',
+                );
+              }
+
+
+              if (
+                productImagePath
+              ) {
+                const {
+                  error:
+                  imageDeleteError,
+                } =
+                  await supabase.storage
+                    .from(
+                      'product-images',
+                    )
+                    .remove([
+                      productImagePath,
+                    ]);
+
+
+                if (
+                  imageDeleteError &&
+                  __DEV__
+                ) {
+                  console.error(
+                    'Deleted Product Image Cleanup Error:',
+                    imageDeleteError.message,
+                  );
+                }
+              }
+
+
+              setSelectedImage(
+                null,
+              );
+
+              setCurrentImageUrl(
+                '',
+              );
+
+
+              setModal({
+                visible: true,
+                type: 'success',
+                title:
+                  'Product Deleted',
+                message:
+                  'The product has been removed successfully.',
+                confirmText:
+                  'OK',
+                cancelText:
+                  'Cancel',
+                showCancel:
+                  false,
+                onConfirm:
+                  () => {
+                    setModal(
+                      current => ({
+                        ...current,
+                        visible: false,
+                      }),
+                    );
+
+                    navigation.goBack();
+                  },
+              });
+
+            } catch (error) {
+              if (__DEV__) {
+                console.error(
+                  'Delete Product Error:',
+                  error?.message ||
+                  error,
+                );
+              }
+
+
+              setModal({
+                visible: true,
+                type: 'error',
+                title:
+                  'Delete Failed',
+                message:
+                  'Unable to delete product.',
+                confirmText:
+                  'OK',
+                cancelText:
+                  'Cancel',
+                showCancel:
+                  false,
+                onConfirm:
+                  closeModal,
+              });
+
+            } finally {
+              setSaving(
+                false,
+              );
+            }
+          },
+      });
     };
 
 
@@ -1585,7 +1745,7 @@ const AdminProductDetails = ({
 
               const {
                 error:
-                  imageSaveError,
+                imageSaveError,
               } =
                 await supabase.rpc(
                   'set_admin_product_image_secure',
@@ -1616,7 +1776,7 @@ const AdminProductDetails = ({
               ) {
                 const {
                   error:
-                    removeError,
+                  removeError,
                 } =
                   await supabase.storage
                     .from(
@@ -2176,7 +2336,7 @@ const AdminProductDetails = ({
             {Number(
               salePercentage || 0,
             ) > 0 &&
-            oldPrice.trim() ? (
+              oldPrice.trim() ? (
 
               <View className="mt-3 flex-row items-center rounded-xl bg-black px-4 py-3">
 
@@ -2260,18 +2420,16 @@ const AdminProductDetails = ({
                       )
                     }
                     activeOpacity={0.85}
-                    className={`mb-3 mr-3 rounded-full px-4 py-3 ${
-                      selected
+                    className={`mb-3 mr-3 rounded-full px-4 py-3 ${selected
                         ? 'bg-black'
                         : 'bg-gray-100'
-                    }`}
+                      }`}
                   >
                     <Text
-                      className={`font-bold ${
-                        selected
+                      className={`font-bold ${selected
                           ? 'text-white'
                           : 'text-black'
-                      }`}
+                        }`}
                     >
                       {
                         category.name
@@ -2307,21 +2465,19 @@ const AdminProductDetails = ({
                     )
                   }
                   activeOpacity={0.85}
-                  className={`flex-row items-center p-2 ${
-                    index <
-                    toggles.length -
+                  className={`flex-row items-center p-2 ${index <
+                      toggles.length -
                       1
                       ? 'mb-2'
                       : ''
-                  }`}
+                    }`}
                 >
 
                   <View
-                    className={`h-7 w-7 items-center justify-center rounded-lg ${
-                      item.value
+                    className={`h-7 w-7 items-center justify-center rounded-lg ${item.value
                         ? 'bg-black'
                         : 'bg-white'
-                    }`}
+                      }`}
                   >
                     {item.value ? (
                       <Ionicons
@@ -2376,6 +2532,29 @@ const AdminProductDetails = ({
 
           </TouchableOpacity>
 
+          {currentProductId ? (
+            <TouchableOpacity
+              onPress={
+                deleteProduct
+              }
+              disabled={busy}
+              activeOpacity={0.85}
+              className="mt-3 h-14 flex-row items-center justify-center rounded-2xl border border-red-200 bg-red-50"
+            >
+
+              <Ionicons
+                name="trash-outline"
+                size={21}
+                color="#DC2626"
+              />
+
+              <Text className="ml-2 text-base font-bold text-red-600">
+                Delete Product
+              </Text>
+
+            </TouchableOpacity>
+          ) : null}
+
 
           {currentProductId ? (
             <>
@@ -2419,7 +2598,7 @@ const AdminProductDetails = ({
               <View className="mt-4">
 
                 {variants.length ===
-                0 ? (
+                  0 ? (
                   <View className="rounded-3xl bg-gray-100 p-5">
 
                     <Text className="text-center font-semibold text-gray-500">
@@ -2599,11 +2778,10 @@ const AdminProductDetails = ({
                       >
 
                         <View
-                          className={`h-7 w-7 items-center justify-center rounded-lg ${
-                            variant.is_active
+                          className={`h-7 w-7 items-center justify-center rounded-lg ${variant.is_active
                               ? 'bg-black'
                               : 'bg-gray-100'
-                          }`}
+                            }`}
                         >
                           {variant.is_active ? (
                             <Ionicons

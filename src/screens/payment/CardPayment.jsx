@@ -11,6 +11,7 @@ import React, { useMemo, useState } from 'react';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppModal from '../../components/common/AppModal';
+import useNavigationSubmissionGuard from '../../hooks/useNavigationSubmissionGuard';
 
 const CardPayment = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -26,13 +27,20 @@ const CardPayment = ({ navigation, route }) => {
     checkoutSubtotal = 0,
     checkoutDiscount = 0,
     checkoutTotal = 0,
+    orderIdempotencyKey = null,
   } = route.params || {};
 
   const [cardHolder, setCardHolder] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvv, setCvv] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const {
+    submitting,
+    beginSubmission,
+  } =
+    useNavigationSubmissionGuard(
+      navigation,
+    );
 
   const [modal, setModal] = useState({
     visible: false,
@@ -118,6 +126,16 @@ const CardPayment = ({ navigation, route }) => {
       return;
     }
 
+    if (!__DEV__) {
+      showModal({
+        type: 'warning',
+        title: 'Card Payment Unavailable',
+        message:
+          'A verified payment provider is required before card payments can be accepted.',
+      });
+      return;
+    }
+
     if (!shippingAddress?.id) {
       showModal({
         type: 'warning',
@@ -172,7 +190,9 @@ const CardPayment = ({ navigation, route }) => {
       return;
     }
 
-    setSubmitting(true);
+    if (!beginSubmission()) {
+      return;
+    }
 
     navigation.navigate('PaymentProcessing', {
       shippingAddress,
@@ -191,10 +211,91 @@ const CardPayment = ({ navigation, route }) => {
       checkoutSubtotal,
       checkoutDiscount,
       checkoutTotal,
+      orderIdempotencyKey,
+      paymentFlowMode: 'demo',
     });
 
-    setSubmitting(false);
   };
+
+  if (!__DEV__) {
+    return (
+      <SafeAreaView
+        edges={[
+          'top',
+          'left',
+          'right',
+          'bottom',
+        ]}
+        className="flex-1 bg-white"
+      >
+        <View
+          className="flex-1 px-6"
+          style={{
+            paddingBottom:
+              Math.max(
+                insets.bottom,
+                20,
+              ),
+          }}
+        >
+          <View className="mt-4 flex-row items-center">
+            <TouchableOpacity
+              onPress={() =>
+                navigation.goBack()
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Go back"
+              activeOpacity={0.8}
+              className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100"
+            >
+              <Ionicons
+                name="arrow-back-outline"
+                size={22}
+                color="black"
+              />
+            </TouchableOpacity>
+
+            <Text className="ml-4 text-2xl font-extrabold text-black">
+              Card Payment
+            </Text>
+          </View>
+
+          <View className="flex-1 items-center justify-center">
+            <View className="h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-black">
+                <Ionicons
+                  name="shield-checkmark-outline"
+                  size={32}
+                  color="white"
+                />
+              </View>
+            </View>
+
+            <Text className="mt-7 text-center text-3xl font-extrabold text-black">
+              Card payments unavailable
+            </Text>
+
+            <Text className="mt-3 max-w-sm text-center text-base leading-6 text-gray-500">
+              A verified payment provider checkout is required before card payments can be enabled. No card details are collected in this build.
+            </Text>
+
+            <TouchableOpacity
+              onPress={() =>
+                navigation.goBack()
+              }
+              accessibilityRole="button"
+              activeOpacity={0.85}
+              className="mt-8 h-14 w-full items-center justify-center rounded-2xl bg-black"
+            >
+              <Text className="text-base font-extrabold text-white">
+                Choose Another Method
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView
@@ -529,14 +630,13 @@ const CardPayment = ({ navigation, route }) => {
               Pay Rs {formattedAmount}
             </Text>
 
-            <Ionicons
-              name="arrow-forward-outline"
-              size={19}
-              color="white"
-              style={{
-                marginLeft: 8,
-              }}
-            />
+            <View className="ml-2">
+              <Ionicons
+                name="arrow-forward-outline"
+                size={19}
+                color="white"
+              />
+            </View>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

@@ -8,6 +8,8 @@ import {
   TouchableOpacity,
   Platform,
   ActivityIndicator,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 
 import React, {
@@ -23,6 +25,13 @@ import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { supabase } from '../../lib/supabase';
 
 import AppModal from '../../components/common/AppModal';
+
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+  },
+});
 
 
 const Login = ({
@@ -179,7 +188,14 @@ const Login = ({
             : undefined
         }
       >
-        <View className="flex-1 px-6">
+        <ScrollView
+          className="flex-1 px-6"
+          contentContainerStyle={
+            styles.scrollContent
+          }
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="mt-8 items-center">
             <Image
               source={require('../../images/Logo.png')}
@@ -206,6 +222,7 @@ const Login = ({
             </Text>
 
             <TextInput
+              accessibilityLabel="Email address"
               placeholder="Enter your email"
               placeholderTextColor="#9CA3AF"
               keyboardType="email-address"
@@ -226,6 +243,7 @@ const Login = ({
 
             <View className="relative">
               <TextInput
+                accessibilityLabel="Password"
                 placeholder="Enter your password"
                 placeholderTextColor="#9CA3AF"
                 secureTextEntry={
@@ -251,8 +269,17 @@ const Login = ({
                   )
                 }
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  showPassword
+                    ? 'Hide password'
+                    : 'Show password'
+                }
+                accessibilityState={{
+                  disabled: loading,
+                }}
                 activeOpacity={0.7}
-                className="absolute right-4 top-0 h-12 items-center justify-center"
+                className="absolute right-0 top-0 h-12 w-12 items-center justify-center"
               >
                 <Ionicons
                   name={
@@ -274,6 +301,8 @@ const Login = ({
                 )
               }
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Forgot password"
               className="mt-3 self-end"
             >
               <Text className="font-semibold text-blue-600">
@@ -287,6 +316,12 @@ const Login = ({
                 handleLogin
               }
               disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Log in"
+              accessibilityState={{
+                disabled: loading,
+                busy: loading,
+              }}
               activeOpacity={0.8}
               className={`mt-6 h-12 items-center justify-center rounded-xl ${
                 loading
@@ -318,6 +353,8 @@ const Login = ({
                   )
                 }
                 disabled={loading}
+                accessibilityRole="button"
+                accessibilityLabel="Create an account"
               >
                 <Text className="text-sm font-bold text-black">
                   Sign Up
@@ -325,7 +362,7 @@ const Login = ({
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
 
 

@@ -6,7 +6,8 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-  Dimensions,
+  AccessibilityInfo,
+  useWindowDimensions,
 } from 'react-native';
 
 import React, {
@@ -24,9 +25,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 import useNotifications from '../../hooks/useNotifications';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-const CARD_WIDTH = SCREEN_WIDTH - 40;
 const CARD_GAP = 12;
 
 const FILTERS = [
@@ -81,6 +79,13 @@ const getSalePercentage = product => {
 };
 
 const Home = ({ navigation }) => {
+  const { width: windowWidth } =
+    useWindowDimensions();
+  const cardWidth = Math.max(
+    windowWidth - 40,
+    0,
+  );
+
   const [carouselProducts, setCarouselProducts] =
     useState([]);
 
@@ -98,6 +103,9 @@ const Home = ({ navigation }) => {
   const [errorMessage, setErrorMessage] =
     useState('');
 
+  const [reduceMotion, setReduceMotion] =
+    useState(false);
+
   const {
     unreadCount,
     refresh: refreshNotifications,
@@ -110,6 +118,31 @@ const Home = ({ navigation }) => {
   const bannerScrollRef = useRef(null);
 
   const currentBannerIndex = useRef(0);
+
+
+  useEffect(() => {
+    let mounted = true;
+
+    AccessibilityInfo
+      .isReduceMotionEnabled()
+      .then(enabled => {
+        if (mounted) {
+          setReduceMotion(enabled);
+        }
+      })
+      .catch(() => undefined);
+
+    const subscription =
+      AccessibilityInfo.addEventListener(
+        'reduceMotionChanged',
+        setReduceMotion,
+      );
+
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
+  }, []);
 
   // =====================================
   // FILTERED CAROUSEL PRODUCTS
@@ -155,12 +188,48 @@ const Home = ({ navigation }) => {
     try {
       setErrorMessage('');
 
-      const [carouselResult, popularResult] =
+      const [
+        latestResult,
+        featuredResult,
+        newResult,
+        saleResult,
+        popularResult,
+      ] =
         await Promise.all([
           supabase
             .from('products')
             .select(PRODUCT_FIELDS)
             .eq('is_active', true)
+            .order('created_at', {
+              ascending: false,
+            })
+            .limit(12),
+
+          supabase
+            .from('products')
+            .select(PRODUCT_FIELDS)
+            .eq('is_active', true)
+            .eq('is_featured', true)
+            .order('created_at', {
+              ascending: false,
+            })
+            .limit(12),
+
+          supabase
+            .from('products')
+            .select(PRODUCT_FIELDS)
+            .eq('is_active', true)
+            .eq('is_new', true)
+            .order('created_at', {
+              ascending: false,
+            })
+            .limit(12),
+
+          supabase
+            .from('products')
+            .select(PRODUCT_FIELDS)
+            .eq('is_active', true)
+            .gt('old_price', 0)
             .order('created_at', {
               ascending: false,
             })
@@ -177,16 +246,39 @@ const Home = ({ navigation }) => {
             .limit(8),
         ]);
 
-      if (carouselResult.error) {
-        throw carouselResult.error;
+      const firstError = [
+        latestResult,
+        featuredResult,
+        newResult,
+        saleResult,
+        popularResult,
+      ].find(result => result.error)
+        ?.error;
+
+      if (firstError) {
+        throw firstError;
       }
 
-      if (popularResult.error) {
-        throw popularResult.error;
-      }
+      const carouselMap = new Map();
+
+      [
+        ...(latestResult.data || []),
+        ...(featuredResult.data || []),
+        ...(newResult.data || []),
+        ...(saleResult.data || []),
+      ].forEach(product => {
+        if (product?.id) {
+          carouselMap.set(
+            product.id,
+            product,
+          );
+        }
+      });
 
       setCarouselProducts(
-        carouselResult.data || [],
+        Array.from(
+          carouselMap.values(),
+        ),
       );
 
       setPopularProducts(
@@ -246,16 +338,23 @@ const Home = ({ navigation }) => {
 
     bannerScrollRef.current?.scrollTo({
       x: 0,
-      animated: true,
+      animated: !reduceMotion,
     });
-  }, [selectedFilter]);
+  }, [
+    cardWidth,
+    reduceMotion,
+    selectedFilter,
+  ]);
 
   // =====================================
   // AUTO SCROLL EVERY 2.5 SECONDS
   // =====================================
 
   useEffect(() => {
-    if (filteredProducts.length <= 1) {
+    if (
+      reduceMotion ||
+      filteredProducts.length <= 1
+    ) {
       return;
     }
 
@@ -274,7 +373,7 @@ const Home = ({ navigation }) => {
       bannerScrollRef.current?.scrollTo({
         x:
           nextIndex *
-          (CARD_WIDTH + CARD_GAP),
+          (cardWidth + CARD_GAP),
         animated: true,
       });
     }, 2500);
@@ -282,7 +381,11 @@ const Home = ({ navigation }) => {
     return () => {
       clearInterval(interval);
     };
-  }, [filteredProducts]);
+  }, [
+    cardWidth,
+    filteredProducts,
+    reduceMotion,
+  ]);
 
   // =====================================
   // MANUAL CAROUSEL SCROLL
@@ -294,7 +397,7 @@ const Home = ({ navigation }) => {
 
     const index = Math.round(
       offsetX /
-        (CARD_WIDTH + CARD_GAP),
+        (cardWidth + CARD_GAP),
     );
 
     currentBannerIndex.current = index;
@@ -355,7 +458,7 @@ const Home = ({ navigation }) => {
             </Text> */}
             <Image 
             source={require('../../images/AppIcon.png')}
-            className='h-14 w-14 rounded-full'
+            className='h-10 w-10 rounded-full'
             />
             <Text className="text-3xl font-extrabold text-black">
               ExCloth
@@ -371,6 +474,12 @@ const Home = ({ navigation }) => {
                 navigation.navigate(
                   'Notifications',
                 )
+              }
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : 'Notifications'
               }
               activeOpacity={0.7}
               className="h-12 w-12 items-center justify-center rounded-full bg-gray-100"
@@ -410,6 +519,8 @@ const Home = ({ navigation }) => {
           onPress={() =>
             navigation.navigate('Search')
           }
+          accessibilityRole="button"
+          accessibilityLabel="Search products"
           activeOpacity={0.8}
           className="mt-6 h-12 flex-row items-center rounded-xl bg-gray-100 px-4"
         >
@@ -446,6 +557,13 @@ const Home = ({ navigation }) => {
                 onPress={() =>
                   handleFilterChange(item.key)
                 }
+                accessibilityRole="tab"
+                accessibilityLabel={
+                  item.label
+                }
+                accessibilityState={{
+                  selected,
+                }}
                 activeOpacity={0.8}
                 className={`rounded-full px-5 py-3 ${
                   selected
@@ -500,6 +618,8 @@ const Home = ({ navigation }) => {
 
             <TouchableOpacity
               onPress={fetchHomeData}
+              accessibilityRole="button"
+              accessibilityLabel="Try loading products again"
               className="mt-3 items-center"
             >
               <Text className="font-bold text-black">
@@ -523,7 +643,7 @@ const Home = ({ navigation }) => {
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
               snapToInterval={
-                CARD_WIDTH + CARD_GAP
+                cardWidth + CARD_GAP
               }
               snapToAlignment="start"
               onMomentumScrollEnd={
@@ -547,8 +667,15 @@ const Home = ({ navigation }) => {
                           },
                         )
                       }
+                      accessibilityRole="button"
+                      accessibilityLabel={`${product.name}, Rs ${product.price}, ${
+                        product.stock_quantity >
+                        0
+                          ? 'in stock'
+                          : 'out of stock'
+                      }`}
                       style={{
-                        width: CARD_WIDTH,
+                        width: cardWidth,
                         marginRight:
                           index ===
                           filteredProducts.length -
@@ -785,6 +912,12 @@ const Home = ({ navigation }) => {
                       },
                     )
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={`${product.name}, Rs ${product.price}, ${
+                    product.stock_quantity > 0
+                      ? 'in stock'
+                      : 'out of stock'
+                  }`}
                   activeOpacity={0.85}
                   className="mb-4 w-[48%] overflow-hidden rounded-3xl border border-gray-200 bg-white"
                 >

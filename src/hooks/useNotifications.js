@@ -21,6 +21,12 @@ const useNotifications = () => {
 
   const channelRef = useRef(null);
 
+  const instanceIdRef = useRef(
+    `${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 10)}`,
+  );
+
   const sortNotifications = useCallback(
     list =>
       [...list].sort(
@@ -57,13 +63,21 @@ const useNotifications = () => {
         }
 
         if (!user) {
-          throw new Error('User session not found.');
+          throw new Error(
+            'User session not found.',
+          );
         }
 
-        userIdRef.current = user.id;
+        userIdRef.current =
+          user.id;
 
-        const { data, error } = await supabase
-          .from('notifications')
+        const {
+          data,
+          error,
+        } = await supabase
+          .from(
+            'notifications',
+          )
           .select(`
             id,
             user_id,
@@ -77,10 +91,17 @@ const useNotifications = () => {
             is_read,
             created_at
           `)
-          .eq('user_id', user.id)
-          .order('created_at', {
-            ascending: false,
-          })
+          .eq(
+            'user_id',
+            user.id,
+          )
+          .order(
+            'created_at',
+            {
+              ascending:
+                false,
+            },
+          )
           .limit(100);
 
         if (error) {
@@ -98,7 +119,8 @@ const useNotifications = () => {
         if (__DEV__) {
           console.error(
             'Notifications Load Error:',
-            error.message,
+            error?.message ||
+              error,
           );
         }
 
@@ -117,140 +139,235 @@ const useNotifications = () => {
 
   const refresh = useCallback(
     options =>
-      fetchNotifications(options),
+      fetchNotifications(
+        options,
+      ),
     [fetchNotifications],
   );
 
   useEffect(() => {
     let mounted = true;
 
-    const setupRealtime = async () => {
-      try {
-        const {
-          data: { user },
-          error,
-        } = await supabase.auth.getUser();
-
-        if (
-          error ||
-          !user ||
-          !mounted
-        ) {
-          return;
-        }
-
-        userIdRef.current = user.id;
-
-        if (channelRef.current) {
-          await supabase.removeChannel(
-            channelRef.current,
-          );
-        }
-
-        const channel = supabase
-          .channel(
-            `notifications-${user.id}`,
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'INSERT',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${user.id}`,
+    const setupRealtime =
+      async () => {
+        try {
+          const {
+            data: {
+              user,
             },
-            payload => {
-              const newItem = payload?.new;
+            error,
+          } =
+            await supabase.auth
+              .getUser();
 
-              if (!newItem) {
-                return;
-              }
+          if (
+            error ||
+            !user ||
+            !mounted
+          ) {
+            return;
+          }
 
-              setNotifications(current => {
-                const exists =
-                  current.some(
-                    item =>
-                      item.id ===
-                      newItem.id,
+          userIdRef.current =
+            user.id;
+
+          if (
+            channelRef.current
+          ) {
+            const previousChannel =
+              channelRef.current;
+
+            channelRef.current =
+              null;
+
+            await supabase
+              .removeChannel(
+                previousChannel,
+              );
+          }
+
+          if (!mounted) {
+            return;
+          }
+
+          const channelName =
+            `notifications-${user.id}-${instanceIdRef.current}`;
+
+          const channel =
+            supabase
+              .channel(
+                channelName,
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event:
+                    'INSERT',
+
+                  schema:
+                    'public',
+
+                  table:
+                    'notifications',
+
+                  filter:
+                    `user_id=eq.${user.id}`,
+                },
+                payload => {
+                  const newItem =
+                    payload?.new;
+
+                  if (
+                    !newItem
+                  ) {
+                    return;
+                  }
+
+                  setNotifications(
+                    current => {
+                      const exists =
+                        current.some(
+                          item =>
+                            item.id ===
+                            newItem.id,
+                        );
+
+                      if (
+                        exists
+                      ) {
+                        return current;
+                      }
+
+                      return sortNotifications([
+                        newItem,
+                        ...current,
+                      ]);
+                    },
                   );
+                },
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event:
+                    'UPDATE',
 
-                if (exists) {
-                  return current;
+                  schema:
+                    'public',
+
+                  table:
+                    'notifications',
+
+                  filter:
+                    `user_id=eq.${user.id}`,
+                },
+                payload => {
+                  const updated =
+                    payload?.new;
+
+                  if (
+                    !updated
+                  ) {
+                    return;
+                  }
+
+                  setNotifications(
+                    current =>
+                      sortNotifications(
+                        current.map(
+                          item =>
+                            item.id ===
+                            updated.id
+                              ? {
+                                  ...item,
+                                  ...updated,
+                                }
+                              : item,
+                        ),
+                      ),
+                  );
+                },
+              )
+              .on(
+                'postgres_changes',
+                {
+                  event:
+                    'DELETE',
+
+                  schema:
+                    'public',
+
+                  table:
+                    'notifications',
+                },
+                payload => {
+                  const deletedId =
+                    payload
+                      ?.old
+                      ?.id;
+
+                  if (
+                    !deletedId
+                  ) {
+                    return;
+                  }
+
+                  setNotifications(
+                    current =>
+                      current.filter(
+                        item =>
+                          item.id !==
+                          deletedId,
+                      ),
+                  );
+                },
+              );
+
+          channelRef.current =
+            channel;
+
+          channel.subscribe(
+            status => {
+              if (__DEV__) {
+                if (
+                  status ===
+                    'CHANNEL_ERROR' ||
+                  status ===
+                    'TIMED_OUT'
+                ) {
+                  console.error(
+                    'Notification Realtime Status:',
+                    status,
+                  );
                 }
-
-                return sortNotifications([
-                  newItem,
-                  ...current,
-                ]);
-              });
-            },
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'UPDATE',
-              schema: 'public',
-              table: 'notifications',
-              filter: `user_id=eq.${user.id}`,
-            },
-            payload => {
-              const updated =
-                payload?.new;
-
-              if (!updated) {
-                return;
               }
-
-              setNotifications(current =>
-                sortNotifications(
-                  current.map(item =>
-                    item.id === updated.id
-                      ? {
-                          ...item,
-                          ...updated,
-                        }
-                      : item,
-                  ),
-                ),
-              );
             },
-          )
-          .on(
-            'postgres_changes',
-            {
-              event: 'DELETE',
-              schema: 'public',
-              table: 'notifications',
-            },
-            payload => {
-              const deletedId =
-                payload?.old?.id;
-
-              if (!deletedId) {
-                return;
-              }
-
-              setNotifications(current =>
-                current.filter(
-                  item =>
-                    item.id !==
-                    deletedId,
-                ),
-              );
-            },
-          )
-          .subscribe();
-
-        channelRef.current = channel;
-      } catch (error) {
-        if (__DEV__) {
-          console.error(
-            'Notification Realtime Error:',
-            error.message,
           );
+
+          if (!mounted) {
+            if (
+              channelRef.current ===
+              channel
+            ) {
+              channelRef.current =
+                null;
+            }
+
+            await supabase
+              .removeChannel(
+                channel,
+              );
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.error(
+              'Notification Realtime Error:',
+              error?.message ||
+                error,
+            );
+          }
         }
-      }
-    };
+      };
 
     setupRealtime();
 
@@ -260,133 +377,191 @@ const useNotifications = () => {
       const channel =
         channelRef.current;
 
-      channelRef.current = null;
+      channelRef.current =
+        null;
 
       if (channel) {
-        supabase.removeChannel(channel);
+        supabase
+          .removeChannel(
+            channel,
+          )
+          .catch(error => {
+            if (__DEV__) {
+              console.error(
+                'Notification Channel Cleanup Error:',
+                error?.message ||
+                  error,
+              );
+            }
+          });
       }
     };
-  }, [sortNotifications]);
+  }, [
+    sortNotifications,
+  ]);
 
   useEffect(() => {
     fetchNotifications();
-  }, [fetchNotifications]);
+  }, [
+    fetchNotifications,
+  ]);
 
-  const markAsRead = useCallback(
-    async notificationId => {
-      if (!notificationId) {
-        return false;
-      }
+  const markAsRead =
+    useCallback(
+      async notificationId => {
+        if (
+          !notificationId
+        ) {
+          return false;
+        }
 
-      const existing =
-        notifications.find(
-          item =>
-            item.id === notificationId,
+        const existing =
+          notifications.find(
+            item =>
+              item.id ===
+              notificationId,
+          );
+
+        if (
+          existing?.is_read
+        ) {
+          return true;
+        }
+
+        setNotifications(
+          current =>
+            current.map(
+              item =>
+                item.id ===
+                notificationId
+                  ? {
+                      ...item,
+                      is_read:
+                        true,
+                    }
+                  : item,
+            ),
         );
 
-      if (existing?.is_read) {
-        return true;
-      }
+        const {
+          error,
+        } =
+          await supabase.rpc(
+            'mark_notification_read_secure',
+            {
+              p_notification_id:
+                notificationId,
+            },
+          );
 
-      setNotifications(current =>
-        current.map(item =>
-          item.id === notificationId
-            ? {
+        if (error) {
+          if (__DEV__) {
+            console.error(
+              'Mark Notification Read Error:',
+              error.message,
+            );
+          }
+
+          setNotifications(
+            current =>
+              current.map(
+                item =>
+                  item.id ===
+                  notificationId
+                    ? {
+                        ...item,
+                        is_read:
+                          false,
+                      }
+                    : item,
+              ),
+          );
+
+          return false;
+        }
+
+        return true;
+      },
+      [
+        notifications,
+      ],
+    );
+
+  const markAllAsRead =
+    useCallback(
+      async () => {
+        const hasUnread =
+          notifications.some(
+            item =>
+              !item.is_read,
+          );
+
+        if (
+          !hasUnread
+        ) {
+          return true;
+        }
+
+        const previous =
+          notifications;
+
+        setNotifications(
+          current =>
+            current.map(
+              item => ({
                 ...item,
-                is_read: true,
-              }
-            : item,
-        ),
-      );
+                is_read:
+                  true,
+              }),
+            ),
+        );
 
-      const { error } = await supabase.rpc(
-        'mark_notification_read_secure',
-        {
-          p_notification_id:
-            notificationId,
-        },
-      );
-
-      if (error) {
-        if (__DEV__) {
-          console.error(
-            'Mark Notification Read Error:',
-            error.message,
+        const {
+          error,
+        } =
+          await supabase.rpc(
+            'mark_all_notifications_read_secure',
           );
+
+        if (error) {
+          if (__DEV__) {
+            console.error(
+              'Mark All Notifications Error:',
+              error.message,
+            );
+          }
+
+          setNotifications(
+            previous,
+          );
+
+          return false;
         }
 
-        setNotifications(current =>
-          current.map(item =>
-            item.id === notificationId
-              ? {
-                  ...item,
-                  is_read: false,
-                }
-              : item,
-          ),
-        );
-
-        return false;
-      }
-
-      return true;
-    },
-    [notifications],
-  );
-
-  const markAllAsRead = useCallback(
-    async () => {
-      const hasUnread =
-        notifications.some(
-          item => !item.is_read,
-        );
-
-      if (!hasUnread) {
         return true;
-      }
+      },
+      [
+        notifications,
+      ],
+    );
 
-      const previous = notifications;
-
-      setNotifications(current =>
-        current.map(item => ({
-          ...item,
-          is_read: true,
-        })),
-      );
-
-      const { error } = await supabase.rpc(
-        'mark_all_notifications_read_secure',
-      );
-
-      if (error) {
-        if (__DEV__) {
-          console.error(
-            'Mark All Notifications Error:',
-            error.message,
-          );
-        }
-
-        setNotifications(previous);
-
-        return false;
-      }
-
-      return true;
-    },
-    [notifications],
-  );
-
-  const unreadCount = useMemo(
-    () =>
-      notifications.reduce(
-        (count, item) =>
-          item.is_read
-            ? count
-            : count + 1,
-        0,
-      ),
-    [notifications],
-  );
+  const unreadCount =
+    useMemo(
+      () =>
+        notifications.reduce(
+          (
+            count,
+            item,
+          ) =>
+            item.is_read
+              ? count
+              : count + 1,
+          0,
+        ),
+      [
+        notifications,
+      ],
+    );
 
   return {
     notifications,

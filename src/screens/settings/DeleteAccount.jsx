@@ -4,7 +4,6 @@ import React, {
 
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   Text,
   TextInput,
@@ -26,6 +25,10 @@ import {
 } from '@react-native-firebase/messaging';
 
 import { supabase } from '../../lib/supabase';
+
+import {
+  isPushNotificationsEnabled,
+} from '../../utils/pushConfig';
 
 import AppModal from '../../components/common/AppModal';
 
@@ -75,10 +78,11 @@ const DeleteAccount = ({
 
   const removeLocalPushToken =
     async () => {
-      if (
-        Platform.OS !==
-        'android'
-      ) {
+      const shouldCleanPushToken =
+        isPushNotificationsEnabled();
+
+
+      if (!shouldCleanPushToken) {
         return;
       }
 

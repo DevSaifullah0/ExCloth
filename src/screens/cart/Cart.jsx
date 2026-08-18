@@ -1029,6 +1029,8 @@ const Cart = ({ navigation }) => {
                       },
                     )
                   }
+                  accessibilityRole="button"
+                  accessibilityLabel={`View ${product.name}`}
                   activeOpacity={0.9}
                   className="relative h-32 w-32 overflow-hidden rounded-2xl bg-gray-100"
                 >
@@ -1072,6 +1074,8 @@ const Cart = ({ navigation }) => {
                           },
                         )
                       }
+                      accessibilityRole="button"
+                      accessibilityLabel={`View ${product.name}`}
                       activeOpacity={0.8}
                       className="flex-1 pr-2"
                     >
@@ -1093,8 +1097,18 @@ const Cart = ({ navigation }) => {
                         updatingId ===
                         item.cartId
                       }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ${product.name} from cart`}
+                      accessibilityState={{
+                        disabled:
+                          updatingId ===
+                          item.cartId,
+                        busy:
+                          updatingId ===
+                          item.cartId,
+                      }}
                       activeOpacity={0.8}
-                      className="h-9 w-9 items-center justify-center rounded-full bg-gray-100"
+                      className="h-11 w-11 items-center justify-center rounded-full bg-gray-100"
                     >
                       {updatingId ===
                       item.cartId ? (
@@ -1186,7 +1200,16 @@ const Cart = ({ navigation }) => {
                         updatingId ===
                           item.cartId
                       }
-                      className="h-9 w-9 items-center justify-center rounded-lg bg-white"
+                      accessibilityRole="button"
+                      accessibilityLabel={`Decrease ${product.name} quantity`}
+                      accessibilityState={{
+                        disabled:
+                          item.quantity <=
+                            1 ||
+                          updatingId ===
+                            item.cartId,
+                      }}
+                      className="h-11 w-11 items-center justify-center rounded-lg bg-white"
                     >
                       <Ionicons
                         name="remove-outline"
@@ -1229,7 +1252,17 @@ const Cart = ({ navigation }) => {
                         outOfStock ||
                         quantityAtLimit
                       }
-                      className="h-9 w-9 items-center justify-center rounded-lg bg-black"
+                      accessibilityRole="button"
+                      accessibilityLabel={`Increase ${product.name} quantity`}
+                      accessibilityState={{
+                        disabled:
+                          updatingId ===
+                            item.cartId ||
+                          item.variantUnavailable ||
+                          outOfStock ||
+                          quantityAtLimit,
+                      }}
+                      className="h-11 w-11 items-center justify-center rounded-lg bg-black"
                     >
                       <Ionicons
                         name="add-outline"

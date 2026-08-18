@@ -32,6 +32,9 @@ import {
 
 import { supabase } from '../../lib/supabase';
 import AppModal from '../../components/common/AppModal';
+import {
+  isPushNotificationsEnabled,
+} from '../../utils/pushConfig';
 
 
 const AdminDashboard = ({
@@ -108,52 +111,56 @@ const AdminDashboard = ({
 
 
       try {
-        const messaging =
-          getMessaging();
+        if (
+          isPushNotificationsEnabled()
+        ) {
+          const messaging =
+            getMessaging();
 
-        const currentPushToken =
-          await getToken(
-            messaging,
-          );
-
-
-        if (currentPushToken) {
-          const {
-            error:
-              unregisterError,
-          } =
-            await supabase.rpc(
-              'unregister_push_token_secure',
-              {
-                p_token:
-                  currentPushToken,
-              },
-            );
-
-
-          if (unregisterError) {
-            if (__DEV__) {
-              console.error(
-                'Admin push token unregister error:',
-                unregisterError.message,
-              );
-            }
-          }
-
-
-          try {
-            await deleteToken(
+          const currentPushToken =
+            await getToken(
               messaging,
             );
-          } catch (
-            tokenDeleteError
-          ) {
-            if (__DEV__) {
-              console.error(
-                'Admin FCM token delete error:',
-                tokenDeleteError?.message ||
-                  tokenDeleteError,
+
+
+          if (currentPushToken) {
+            const {
+              error:
+                unregisterError,
+            } =
+              await supabase.rpc(
+                'unregister_push_token_secure',
+                {
+                  p_token:
+                    currentPushToken,
+                },
               );
+
+
+            if (unregisterError) {
+              if (__DEV__) {
+                console.error(
+                  'Admin push token unregister error:',
+                  unregisterError.message,
+                );
+              }
+            }
+
+
+            try {
+              await deleteToken(
+                messaging,
+              );
+            } catch (
+              tokenDeleteError
+            ) {
+              if (__DEV__) {
+                console.error(
+                  'Admin FCM token delete error:',
+                  tokenDeleteError?.message ||
+                    tokenDeleteError,
+                );
+              }
             }
           }
         }

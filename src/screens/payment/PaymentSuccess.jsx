@@ -76,6 +76,53 @@ const PaymentSuccess = ({
     };
 
 
+  if (!orderId) {
+    return (
+      <SafeAreaView
+        edges={[
+          'top',
+          'left',
+          'right',
+          'bottom',
+        ]}
+        className="flex-1 bg-white"
+      >
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="h-24 w-24 items-center justify-center rounded-full bg-gray-100">
+            <Ionicons
+              name="alert-circle-outline"
+              size={48}
+              color="black"
+            />
+          </View>
+
+          <Text className="mt-6 text-center text-2xl font-extrabold text-black">
+            Payment Status Unavailable
+          </Text>
+
+          <Text className="mt-3 text-center text-base leading-6 text-gray-500">
+            No verified order reference was provided, so this payment cannot be shown as successful.
+          </Text>
+
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Return to shopping"
+            activeOpacity={0.85}
+            className="mt-8 h-14 w-full items-center justify-center rounded-2xl bg-black"
+            onPress={
+              handleContinueShopping
+            }
+          >
+            <Text className="text-base font-extrabold text-white">
+              Return to Shopping
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+
   return (
     <SafeAreaView
       edges={[

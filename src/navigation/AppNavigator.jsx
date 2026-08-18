@@ -18,8 +18,8 @@ import OrderDetails from '../screens/orders/OrderDetails';
 import OrderTracking from '../screens/orders/OrderTracking';
 import CancelOrder from '../screens/orders/CancelOrder';
 
-import ReturnRequest from '../screens/return/ReturnRequest';
-import ReturnDetails from '../screens/return/ReturnDetails';
+import ReturnRequest from '../screens/orders/ReturnRequest';
+import ReturnDetails from '../screens/orders/ReturnDetails';
 
 import EditProfile from '../screens/profile/EditProfile';
 

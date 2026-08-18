@@ -349,73 +349,16 @@ const ShippingAddresses = ({
         );
 
         const {
-          data: { user },
-          error: userError,
-        } =
-          await supabase.auth
-            .getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          throw new Error(
-            'User session not found.',
-          );
-        }
-
-        const {
-          error:
-            resetError,
-        } =
-          await supabase
-            .from(
-              'shipping_addresses',
-            )
-            .update({
-              is_default:
-                false,
-              updated_at:
-                new Date()
-                  .toISOString(),
-            })
-            .eq(
-              'user_id',
-              user.id,
-            )
-            .eq(
-              'is_default',
-              true,
-            );
-
-        if (resetError) {
-          throw resetError;
-        }
-
-        const {
           error:
             defaultError,
         } =
-          await supabase
-            .from(
-              'shipping_addresses',
-            )
-            .update({
-              is_default:
-                true,
-              updated_at:
-                new Date()
-                  .toISOString(),
-            })
-            .eq(
-              'id',
-              address.id,
-            )
-            .eq(
-              'user_id',
-              user.id,
-            );
+          await supabase.rpc(
+            'set_default_shipping_address_secure',
+            {
+              p_address_id:
+                address.id,
+            },
+          );
 
         if (defaultError) {
           throw defaultError;
@@ -457,89 +400,19 @@ const ShippingAddresses = ({
         );
 
         const {
-          data: { user },
-          error: userError,
-        } =
-          await supabase.auth
-            .getUser();
-
-        if (userError) {
-          throw userError;
-        }
-
-        if (!user) {
-          throw new Error(
-            'User session not found.',
-          );
-        }
-
-        const {
           error:
             deleteError,
         } =
-          await supabase
-            .from(
-              'shipping_addresses',
-            )
-            .delete()
-            .eq(
-              'id',
-              address.id,
-            )
-            .eq(
-              'user_id',
-              user.id,
-            );
+          await supabase.rpc(
+            'delete_shipping_address_secure',
+            {
+              p_address_id:
+                address.id,
+            },
+          );
 
         if (deleteError) {
           throw deleteError;
-        }
-
-        if (
-          address.is_default
-        ) {
-          const remaining =
-            addresses.filter(
-              item =>
-                item.id !==
-                address.id,
-            );
-
-          if (
-            remaining.length >
-            0
-          ) {
-            const {
-              error:
-                nextDefaultError,
-            } =
-              await supabase
-                .from(
-                  'shipping_addresses',
-                )
-                .update({
-                  is_default:
-                    true,
-                  updated_at:
-                    new Date()
-                      .toISOString(),
-                })
-                .eq(
-                  'id',
-                  remaining[0]
-                    .id,
-                )
-                .eq(
-                  'user_id',
-                  user.id,
-                );
-
-            if (
-              nextDefaultError
-            ) {
-              throw nextDefaultError;
-            }
-          }
         }
 
         if (

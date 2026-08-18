@@ -10,13 +10,20 @@ import notifee, {
 } from '@notifee/react-native';
 
 import {
+  AuthorizationStatus,
   getMessaging,
   getToken,
   onTokenRefresh,
   onMessage,
+  registerDeviceForRemoteMessages,
+  requestPermission,
 } from '@react-native-firebase/messaging';
 
 import { supabase } from '../lib/supabase';
+
+import {
+  isPushNotificationsEnabled,
+} from '../utils/pushConfig';
 
 
 const FOREGROUND_CHANNEL_ID =
@@ -24,7 +31,23 @@ const FOREGROUND_CHANNEL_ID =
 
 
 const requestNotificationPermission =
-  async () => {
+  async messaging => {
+    if (Platform.OS === 'ios') {
+      const status =
+        await requestPermission(
+          messaging,
+        );
+
+
+      return (
+        status ===
+          AuthorizationStatus.AUTHORIZED ||
+        status ===
+          AuthorizationStatus.PROVISIONAL
+      );
+    }
+
+
     if (
       Platform.OS !==
       'android'
@@ -56,6 +79,14 @@ const requestNotificationPermission =
 
 const createForegroundChannel =
   async () => {
+    if (
+      Platform.OS !==
+      'android'
+    ) {
+      return null;
+    }
+
+
     return await notifee.createChannel({
       id:
         FOREGROUND_CHANNEL_ID,
@@ -92,7 +123,24 @@ const showForegroundNotification =
       null;
 
 
-    await notifee.displayNotification({
+    const title =
+      remoteMessage
+        ?.notification
+        ?.title ||
+      data.title ||
+      'ExCloth';
+
+
+    const body =
+      remoteMessage
+        ?.notification
+        ?.body ||
+      data.message ||
+      data.body ||
+      'You have a new notification.';
+
+
+    const notification = {
       ...(notificationId
         ? {
             id:
@@ -102,37 +150,42 @@ const showForegroundNotification =
           }
         : {}),
 
-      title:
-        remoteMessage
-          ?.notification
-          ?.title ||
-        'ExCloth',
+      title,
 
-      body:
-        remoteMessage
-          ?.notification
-          ?.body ||
-        'You have a new notification.',
+      body,
 
       data,
 
-      android: {
-        channelId,
+      ...(Platform.OS === 'android'
+        ? {
+            android: {
+              channelId,
 
-        smallIcon:
-          'ic_notification',
+              smallIcon:
+                'ic_notification',
 
-        color:
-          '#000000',
+              color:
+                '#000000',
 
-        importance:
-          AndroidImportance.HIGH,
+              importance:
+                AndroidImportance.HIGH,
 
-        pressAction: {
-          id: 'default',
-        },
-      },
-    });
+              pressAction: {
+                id: 'default',
+              },
+            },
+          }
+        : {
+            ios: {
+              sound: 'default',
+            },
+          }),
+    };
+
+
+    await notifee.displayNotification(
+      notification,
+    );
   };
 
 
@@ -189,20 +242,41 @@ const usePushNotifications =
   () => {
     useEffect(() => {
       if (
-        Platform.OS !==
-        'android'
+        ![
+          'android',
+          'ios',
+        ].includes(
+          Platform.OS,
+        ) ||
+        !isPushNotificationsEnabled()
       ) {
         return undefined;
       }
 
 
-      const messaging =
-        getMessaging();
+      let messaging;
+
+
+      try {
+        messaging =
+          getMessaging();
+      } catch (error) {
+        if (__DEV__) {
+          console.error(
+            'Push messaging initialization error:',
+            error?.message ||
+              error,
+          );
+        }
+
+        return undefined;
+      }
 
 
       let unsubscribeTokenRefresh;
       let unsubscribeForegroundMessage;
       let authSubscription;
+      let disposed = false;
 
 
       const registerToken =
@@ -234,7 +308,9 @@ const usePushNotifications =
         async () => {
           try {
             const permissionGranted =
-              await requestNotificationPermission();
+              await requestNotificationPermission(
+                messaging,
+              );
 
 
             if (!permissionGranted) {
@@ -248,9 +324,34 @@ const usePushNotifications =
             }
 
 
-            await createForegroundChannel();
+            if (disposed) {
+              return;
+            }
+
+
+            if (
+              Platform.OS ===
+              'ios'
+            ) {
+              await registerDeviceForRemoteMessages(
+                messaging,
+              );
+
+            } else {
+              await createForegroundChannel();
+            }
+
+
+            if (disposed) {
+              return;
+            }
 
             await registerToken();
+
+
+            if (disposed) {
+              return;
+            }
 
 
             unsubscribeForegroundMessage =
@@ -336,6 +437,9 @@ const usePushNotifications =
 
 
       return () => {
+        disposed = true;
+
+
         if (
           unsubscribeForegroundMessage
         ) {

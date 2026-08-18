@@ -193,6 +193,7 @@ const AddressForm = ({
     title: '',
     message: '',
     confirmText: 'OK',
+    onConfirm: null,
   });
 
 
@@ -201,6 +202,7 @@ const AddressForm = ({
     title = '',
     message = '',
     confirmText = 'OK',
+    onConfirm = null,
   }) => {
     setModal({
       visible: true,
@@ -208,15 +210,25 @@ const AddressForm = ({
       title,
       message,
       confirmText,
+      onConfirm,
     });
   };
 
 
   const closeModal = () => {
+    const onConfirm =
+      modal.onConfirm;
+
     setModal(current => ({
       ...current,
       visible: false,
+      onConfirm: null,
     }));
+
+
+    if (onConfirm) {
+      onConfirm();
+    }
   };
 
 
@@ -438,6 +450,9 @@ const AddressForm = ({
         let shouldBeDefault =
           isDefault;
 
+        let isFirstAddress =
+          false;
+
 
         // Existing default remains default unless
         // another address is explicitly made default.
@@ -487,62 +502,23 @@ const AddressForm = ({
             ) ===
             0
           ) {
+            isFirstAddress =
+              true;
+
             shouldBeDefault =
               true;
           }
         }
 
 
-        // If this address is becoming default,
-        // remove the current default first.
-        if (
-          shouldBeDefault
-        ) {
-          let resetQuery =
-            supabase
-              .from(
-                'shipping_addresses',
-              )
-              .update({
-                is_default:
-                  false,
-
-                updated_at:
-                  new Date()
-                    .toISOString(),
-              })
-              .eq(
-                'user_id',
-                user.id,
-              )
-              .eq(
-                'is_default',
-                true,
-              );
-
-
-          if (
-            isEditing
-          ) {
-            resetQuery =
-              resetQuery.neq(
-                'id',
-                editingAddress.id,
-              );
-          }
-
-
-          const {
-            error:
-              resetError,
-          } =
-            await resetQuery;
-
-
-          if (resetError) {
-            throw resetError;
-          }
-        }
+        // Persist a new/non-default row first, then let the
+        // reviewed RPC switch defaults in one transaction.
+        // A failed RPC therefore leaves the previous default intact.
+        const shouldSetDefaultAfterSave =
+          shouldBeDefault &&
+          !isFirstAddress &&
+          !editingAddress
+            ?.is_default;
 
 
         const cleanHouse =
@@ -611,7 +587,8 @@ const AddressForm = ({
             'Pakistan',
 
           is_default:
-            shouldBeDefault,
+            shouldBeDefault &&
+            !shouldSetDefaultAfterSave,
 
           updated_at:
             new Date()
@@ -684,26 +661,89 @@ const AddressForm = ({
         }
 
 
+        let defaultSwitchFailed =
+          false;
+
+
         if (
-          returnTo ===
-          'Checkout'
+          shouldSetDefaultAfterSave
         ) {
-          navigation.popTo(
-            'Checkout',
-            {
-              selectedAddress:
-                savedAddress,
-            },
-            {
-              merge: true,
-            },
-          );
+          const {
+            error:
+              defaultError,
+          } =
+            await supabase.rpc(
+              'set_default_shipping_address_secure',
+              {
+                p_address_id:
+                  savedAddress.id,
+              },
+            );
+
+
+          if (defaultError) {
+            defaultSwitchFailed =
+              true;
+
+            if (__DEV__) {
+              console.error(
+                'Default address switch error:',
+                defaultError.message,
+              );
+            }
+          } else {
+            savedAddress = {
+              ...savedAddress,
+              is_default:
+                true,
+            };
+          }
+        }
+
+
+        const finishSave =
+          () => {
+            if (
+              returnTo ===
+              'Checkout'
+            ) {
+              navigation.popTo(
+                'Checkout',
+                {
+                  selectedAddress:
+                    savedAddress,
+                },
+                {
+                  merge: true,
+                },
+              );
+
+              return;
+            }
+
+
+            navigation.goBack();
+          };
+
+
+        if (
+          defaultSwitchFailed
+        ) {
+          showModal({
+            type: 'warning',
+            title:
+              'Address Saved',
+            message:
+              'The address was saved, but your previous default address is still active. You can try setting this address as default again.',
+            onConfirm:
+              finishSave,
+          });
 
           return;
         }
 
 
-        navigation.goBack();
+        finishSave();
 
       } catch (error) {
         if (__DEV__) {

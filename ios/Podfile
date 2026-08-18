@@ -8,6 +8,11 @@ require Pod::Executable.execute_command('node', ['-p',
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# React Native Firebase 26 defaults to Swift Package Manager. This target uses
+# the standard static Pods integration, where SPM would embed duplicate Firebase
+# products in RNFBApp and RNFBMessaging. Resolve Firebase through CocoaPods.
+$RNFirebaseDisableSPM = true
+
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
   Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
@@ -15,6 +20,11 @@ if linkage != nil
 end
 
 target 'ExCloth' do
+  # FirebaseCoreInternal is Swift while GoogleUtilities is Objective-C. Expose a
+  # module map for that one transitive dependency without changing every React
+  # Native pod to modular headers.
+  pod 'GoogleUtilities', :modular_headers => true
+
   config = use_native_modules!
 
   use_react_native!(

@@ -9,6 +9,7 @@ import {
 
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
 
@@ -45,9 +46,15 @@ const ProductDetails = ({
   // ==========================================
 
   const [product, setProduct] =
-    useState(
-      passedProduct || null,
-    );
+    useState(null);
+
+  const detailsRequestIdRef =
+    useRef(0);
+
+  const [
+    detailsReady,
+    setDetailsReady,
+  ] = useState(false);
 
   const [images, setImages] =
     useState([]);
@@ -92,6 +99,9 @@ const ProductDetails = ({
     cartLoading,
     setCartLoading,
   ] = useState(false);
+
+  const cartRequestInFlightRef =
+    useRef(false);
 
 
   // ==========================================
@@ -146,6 +156,12 @@ const ProductDetails = ({
 
       if (action === 'back') {
         navigation.goBack();
+
+        return;
+      }
+
+      if (action === 'retry') {
+        fetchProductDetails();
       }
     };
 
@@ -168,9 +184,20 @@ const ProductDetails = ({
   // ==========================================
 
   const fetchReviewSummary =
-    async productId => {
+    async (
+      productId,
+      requestId =
+        detailsRequestIdRef.current,
+    ) => {
       try {
         if (!productId) {
+          if (
+            requestId !==
+            detailsRequestIdRef.current
+          ) {
+            return;
+          }
+
           setReviewSummary({
             averageRating: 0,
             reviewCount: 0,
@@ -234,6 +261,14 @@ const ProductDetails = ({
             : 0;
 
 
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
+
+
         setReviewSummary({
           averageRating,
           reviewCount,
@@ -245,6 +280,13 @@ const ProductDetails = ({
             'Review Summary Error:',
             error.message,
           );
+        }
+
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
         }
 
         setReviewSummary({
@@ -260,12 +302,11 @@ const ProductDetails = ({
   // ==========================================
 
   useEffect(() => {
-    setProduct(
-      passedProduct || null,
-    );
+    setProduct(null);
 
     setImages([]);
     setVariants([]);
+    setDetailsReady(false);
 
     setSelectedImageId(null);
     setSelectedSize(null);
@@ -277,6 +318,11 @@ const ProductDetails = ({
     });
 
     fetchProductDetails();
+
+    return () => {
+      detailsRequestIdRef.current +=
+        1;
+    };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -317,8 +363,29 @@ const ProductDetails = ({
 
   const fetchProductDetails =
     async () => {
+      const requestId =
+        detailsRequestIdRef.current +
+        1;
+
+      detailsRequestIdRef.current =
+        requestId;
+
       try {
         setLoading(true);
+        setDetailsReady(false);
+
+        setProduct(null);
+        setImages([]);
+        setVariants([]);
+
+        setSelectedImageId(null);
+        setSelectedSize(null);
+        setSelectedColor(null);
+
+        setReviewSummary({
+          averageRating: 0,
+          reviewCount: 0,
+        });
 
 
         if (!passedProduct?.id) {
@@ -373,9 +440,12 @@ const ProductDetails = ({
         }
 
 
-        setProduct(
-          productData,
-        );
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
 
 
         // =====================================
@@ -384,7 +454,16 @@ const ProductDetails = ({
 
         await fetchReviewSummary(
           productData.id,
+          requestId,
         );
+
+
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
 
 
         // =====================================
@@ -422,9 +501,12 @@ const ProductDetails = ({
         }
 
 
-        setImages(
-          imageData || [],
-        );
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
 
 
         // =====================================
@@ -452,10 +534,6 @@ const ProductDetails = ({
             'product_id',
             passedProduct.id,
           )
-          .eq(
-            'is_active',
-            true,
-          )
           .order(
             'id',
             {
@@ -469,9 +547,42 @@ const ProductDetails = ({
         }
 
 
-        const loadedVariants =
+        const allVariants =
           variantData || [];
 
+        const loadedVariants =
+          allVariants.filter(
+            variant =>
+              variant.is_active ===
+              true,
+          );
+
+
+        if (
+          allVariants.length > 0 &&
+          loadedVariants.length === 0
+        ) {
+          throw new Error(
+            'Product has no active variants.',
+          );
+        }
+
+
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
+
+
+        setProduct(
+          productData,
+        );
+
+        setImages(
+          imageData || [],
+        );
 
         setVariants(
           loadedVariants,
@@ -525,7 +636,17 @@ const ProductDetails = ({
           );
         }
 
+
+        setDetailsReady(true);
+
       } catch (error) {
+        if (
+          requestId !==
+          detailsRequestIdRef.current
+        ) {
+          return;
+        }
+
         if (__DEV__) {
           console.error(
             'Product Details Error:',
@@ -534,16 +655,32 @@ const ProductDetails = ({
         }
 
 
+        setProduct(null);
+        setImages([]);
+        setVariants([]);
+        setDetailsReady(false);
+
+        setSelectedImageId(null);
+        setSelectedSize(null);
+        setSelectedColor(null);
+
+
         showModal({
           type: 'error',
           title: 'Unable to Load Product',
           message:
             'Unable to load product details. Please try again.',
-          confirmText: 'OK',
+          confirmText: 'Try Again',
+          action: 'retry',
         });
 
       } finally {
-        setLoading(false);
+        if (
+          requestId ===
+          detailsRequestIdRef.current
+        ) {
+          setLoading(false);
+        }
       }
     };
 
@@ -558,6 +695,23 @@ const ProductDetails = ({
         setWishlistLoading(
           true,
         );
+
+
+        if (
+          !detailsReady ||
+          !product?.id
+        ) {
+          showModal({
+            type: 'error',
+            title: 'Product Unavailable',
+            message:
+              'Product details are not ready. Please reload before adding this item to your wishlist.',
+            confirmText: 'Try Again',
+            action: 'retry',
+          });
+
+          return;
+        }
 
 
         // =====================================
@@ -850,8 +1004,34 @@ const ProductDetails = ({
 
   const addToCart =
     async () => {
+      if (
+        cartRequestInFlightRef.current
+      ) {
+        return;
+      }
+
+      cartRequestInFlightRef.current =
+        true;
+
       try {
         setCartLoading(true);
+
+
+        if (
+          !detailsReady ||
+          !product?.id
+        ) {
+          showModal({
+            type: 'error',
+            title: 'Product Unavailable',
+            message:
+              'Product details are not ready. Please reload before adding this item to your cart.',
+            confirmText: 'Try Again',
+            action: 'retry',
+          });
+
+          return;
+        }
 
 
         // =====================================
@@ -893,7 +1073,7 @@ const ProductDetails = ({
 
         if (
           hasVariants &&
-          !selectedVariant
+          !selectedVariant?.id
         ) {
           showModal({
             type: 'warning',
@@ -911,21 +1091,179 @@ const ProductDetails = ({
         // STOCK VALIDATION
         // =====================================
 
+        const productAvailabilityQuery =
+          supabase
+            .from('products')
+            .select(`
+              id,
+              stock_quantity
+            `)
+            .eq(
+              'id',
+              product.id,
+            )
+            .eq(
+              'is_active',
+              true,
+            )
+            .maybeSingle();
+
+
+        let variantAvailabilityQuery =
+          supabase
+            .from(
+              'product_variants',
+            )
+            .select(`
+              id,
+              product_id,
+              stock_quantity,
+              is_active
+            `)
+            .eq(
+              'product_id',
+              product.id,
+            );
+
+
+        if (hasVariants) {
+          variantAvailabilityQuery =
+            variantAvailabilityQuery
+              .eq(
+                'id',
+                selectedVariant.id,
+              )
+              .eq(
+                'is_active',
+                true,
+              )
+              .maybeSingle();
+
+        } else {
+          variantAvailabilityQuery =
+            variantAvailabilityQuery
+              .limit(1)
+              .maybeSingle();
+        }
+
+
+        const [
+          productAvailabilityResult,
+          variantAvailabilityResult,
+        ] = await Promise.all([
+          productAvailabilityQuery,
+          variantAvailabilityQuery,
+        ]);
+
+
+        if (
+          productAvailabilityResult
+            .error
+        ) {
+          throw productAvailabilityResult
+            .error;
+        }
+
+
+        if (
+          variantAvailabilityResult
+            .error
+        ) {
+          throw variantAvailabilityResult
+            .error;
+        }
+
+
+        const currentProduct =
+          productAvailabilityResult
+            .data;
+
+        const currentVariant =
+          variantAvailabilityResult
+            .data;
+
+
+        if (!currentProduct?.id) {
+          setDetailsReady(false);
+          setProduct(null);
+
+          showModal({
+            type: 'warning',
+            title: 'Product Unavailable',
+            message:
+              'This product is no longer available.',
+            confirmText: 'Go Back',
+            action: 'back',
+          });
+
+          return;
+        }
+
+
+        if (
+          hasVariants &&
+          !currentVariant?.id
+        ) {
+          setDetailsReady(false);
+
+          showModal({
+            type: 'warning',
+            title: 'Options Changed',
+            message:
+              'The selected option is no longer available. Reload the latest product options before adding it to your cart.',
+            confirmText: 'Reload',
+            action: 'retry',
+          });
+
+          return;
+        }
+
+
+        if (
+          !hasVariants &&
+          currentVariant?.id
+        ) {
+          setDetailsReady(false);
+
+          showModal({
+            type: 'warning',
+            title: 'Options Changed',
+            message:
+              'This product now requires an option selection. Reload the latest product details before adding it to your cart.',
+            confirmText: 'Reload',
+            action: 'retry',
+          });
+
+          return;
+        }
+
+
+        const cartVariantId =
+          hasVariants
+            ? currentVariant.id
+            : null;
+
+
         const availableStock =
-          selectedVariant
+          hasVariants
             ? Number(
-                selectedVariant
+                currentVariant
                   .stock_quantity,
               )
             : Number(
-                product
+                currentProduct
                   .stock_quantity,
               );
 
 
         if (
+          !Number.isFinite(
+            availableStock,
+          ) ||
           availableStock <= 0
         ) {
+          setDetailsReady(false);
+
           showModal({
             type: 'warning',
             title: 'Out of Stock',
@@ -933,7 +1271,8 @@ const ProductDetails = ({
               selectedVariant
                 ? `The selected ${selectedVariant.size || ''} ${selectedVariant.color || ''} variant is currently unavailable.`
                 : 'This product is currently unavailable.',
-            confirmText: 'OK',
+            confirmText: 'Reload',
+            action: 'retry',
           });
 
           return;
@@ -994,13 +1333,11 @@ const ProductDetails = ({
             );
 
 
-        if (
-          selectedVariant?.id
-        ) {
+        if (cartVariantId) {
           cartQuery =
             cartQuery.eq(
               'variant_id',
-              selectedVariant.id,
+              cartVariantId,
             );
 
         } else {
@@ -1102,9 +1439,7 @@ const ProductDetails = ({
                   product.id,
 
                 variant_id:
-                  selectedVariant
-                    ?.id ||
-                  null,
+                  cartVariantId,
 
                 quantity:
                   1,
@@ -1163,6 +1498,9 @@ const ProductDetails = ({
         });
 
       } finally {
+        cartRequestInFlightRef.current =
+          false;
+
         setCartLoading(false);
       }
     };
@@ -1234,11 +1572,52 @@ const ProductDetails = ({
 
   if (!product) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+      <SafeAreaView className="flex-1 bg-white px-6">
+        <View className="flex-1 items-center justify-center">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-gray-100">
+            <Ionicons
+              name="alert-circle-outline"
+              size={34}
+              color="black"
+            />
+          </View>
 
-        <Text className="text-gray-500">
-          Product not found.
-        </Text>
+          <Text className="mt-5 text-xl font-extrabold text-black">
+            Product unavailable
+          </Text>
+
+          <Text className="mt-2 text-center leading-6 text-gray-500">
+            We could not load the latest product information.
+          </Text>
+
+          <TouchableOpacity
+            onPress={
+              fetchProductDetails
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Try loading product again"
+            activeOpacity={0.85}
+            className="mt-7 h-14 w-full items-center justify-center rounded-2xl bg-black"
+          >
+            <Text className="font-extrabold text-white">
+              Try Again
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() =>
+              navigation.goBack()
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+            activeOpacity={0.8}
+            className="mt-3 h-12 w-full items-center justify-center rounded-2xl bg-gray-100"
+          >
+            <Text className="font-bold text-black">
+              Go Back
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {renderAppModal()}
 
@@ -1563,6 +1942,10 @@ const ProductDetails = ({
 
 
   const canAddToCart =
+    detailsReady &&
+    Number.isFinite(
+      currentStock,
+    ) &&
     currentStock > 0;
 
 
@@ -1617,6 +2000,8 @@ const ProductDetails = ({
                   navigation.goBack()
                 }
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
                 className="h-11 w-11 items-center justify-center rounded-2xl bg-white"
               >
                 <Ionicons
@@ -1631,9 +2016,19 @@ const ProductDetails = ({
                   addToWishlist
                 }
                 disabled={
-                  wishlistLoading
+                  wishlistLoading ||
+                  !detailsReady
                 }
                 activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Add product to wishlist"
+                accessibilityState={{
+                  busy:
+                    wishlistLoading,
+                  disabled:
+                    wishlistLoading ||
+                    !detailsReady,
+                }}
                 className="h-11 w-11 items-center justify-center rounded-2xl bg-white"
               >
                 {wishlistLoading ? (
@@ -2239,9 +2634,19 @@ const ProductDetails = ({
               addToWishlist
             }
             disabled={
-              wishlistLoading
+              wishlistLoading ||
+              !detailsReady
             }
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Add product to wishlist"
+            accessibilityState={{
+              busy:
+                wishlistLoading,
+              disabled:
+                wishlistLoading ||
+                !detailsReady,
+            }}
             className="h-14 w-14 items-center justify-center rounded-2xl border border-gray-300 bg-white"
           >
             {wishlistLoading ? (
@@ -2266,6 +2671,18 @@ const ProductDetails = ({
               !canAddToCart
             }
             activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={
+              canAddToCart
+                ? 'Add product to cart'
+                : 'Product is out of stock'
+            }
+            accessibilityState={{
+              busy: cartLoading,
+              disabled:
+                cartLoading ||
+                !canAddToCart,
+            }}
             className={`h-14 flex-1 flex-row items-center justify-center rounded-2xl ${
               !canAddToCart
                 ? 'bg-gray-400'

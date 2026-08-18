@@ -9,8 +9,11 @@ import {
 
 import React, {
   useEffect,
+  useRef,
   useState,
 } from 'react';
+
+import Config from 'react-native-config';
 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
@@ -24,6 +27,28 @@ import {
 } from '../../lib/supabase';
 
 import AppModal from '../../components/common/AppModal';
+
+import {
+  ONLINE_PAYMENT_METHOD_CODES,
+  PRODUCTION_PAYMENT_ADAPTER_AVAILABLE,
+  buildCheckoutFingerprint,
+  buildCreateOrderRequest,
+  resolveOnlinePaymentAvailability,
+} from '../../utils/paymentOrder';
+
+import {
+  clearOrderIntent,
+  getOrCreateOrderIntent,
+} from '../../utils/orderIntentStorage';
+
+
+const onlinePaymentAvailability =
+  resolveOnlinePaymentAvailability({
+    isDev: __DEV__,
+    runtimeConfig: Config,
+    hasProviderAdapter:
+      PRODUCTION_PAYMENT_ADAPTER_AVAILABLE,
+  });
 
 
 const Payment = ({
@@ -74,6 +99,11 @@ const Payment = ({
     setSelectedMethod,
   ] = useState(null);
 
+  const [
+    onlineMethodsUnavailable,
+    setOnlineMethodsUnavailable,
+  ] = useState(false);
+
 
   // ==========================================
   // CART
@@ -83,6 +113,16 @@ const Payment = ({
     cartItems,
     setCartItems,
   ] = useState([]);
+
+  const [
+    currentUserId,
+    setCurrentUserId,
+  ] = useState(null);
+
+  const [
+    orderIntent,
+    setOrderIntent,
+  ] = useState(null);
 
 
   // ==========================================
@@ -98,6 +138,9 @@ const Payment = ({
     placingOrder,
     setPlacingOrder,
   ] = useState(false);
+
+  const placingOrderRef =
+    useRef(false);
 
   const [
     errorMessage,
@@ -144,6 +187,8 @@ const Payment = ({
 
   useEffect(() => {
     loadPaymentData();
+    // loadPaymentData intentionally runs once for this checkout route.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -157,6 +202,10 @@ const Payment = ({
         setLoading(true);
 
         setErrorMessage('');
+
+        setOrderIntent(null);
+
+        setCurrentUserId(null);
 
 
         // =====================================
@@ -181,6 +230,11 @@ const Payment = ({
             'User session not found.',
           );
         }
+
+
+        setCurrentUserId(
+          user.id,
+        );
 
 
         // =====================================
@@ -223,8 +277,34 @@ const Payment = ({
         }
 
 
-        const loadedMethods =
+        const allMethods =
           methodData || [];
+
+        const isOnlineMethod =
+          method =>
+            Boolean(
+              method.is_online,
+            ) ||
+            ONLINE_PAYMENT_METHOD_CODES.includes(
+              method.code,
+            );
+
+        const loadedMethods =
+          allMethods.filter(
+            method =>
+              !isOnlineMethod(
+                method,
+              ) ||
+              onlinePaymentAvailability.allowed,
+          );
+
+
+        setOnlineMethodsUnavailable(
+          !onlinePaymentAvailability.allowed &&
+            allMethods.some(
+              isOnlineMethod,
+            ),
+        );
 
 
         setMethods(
@@ -239,23 +319,19 @@ const Payment = ({
         // configured production payment method.
         // =====================================
 
-        if (
-          loadedMethods.length >
-          0
-        ) {
-          const codMethod =
-            loadedMethods.find(
-              method =>
-                method.code ===
-                'cod',
-            );
-
-
-          setSelectedMethod(
-            codMethod ||
-              loadedMethods[0],
+        const codMethod =
+          loadedMethods.find(
+            method =>
+              method.code ===
+              'cod',
           );
-        }
+
+
+        setSelectedMethod(
+          codMethod ||
+            loadedMethods[0] ||
+            null,
+        );
 
 
         // =====================================
@@ -503,6 +579,29 @@ const Payment = ({
           formattedCart,
         );
 
+
+        const checkoutFingerprint =
+          buildCheckoutFingerprint({
+            userId: user.id,
+            shippingAddressId:
+              shippingAddress?.id,
+            couponCode,
+            cartItems:
+              formattedCart,
+          });
+
+        const preparedOrderIntent =
+          await getOrCreateOrderIntent({
+            userId: user.id,
+            fingerprint:
+              checkoutFingerprint,
+          });
+
+
+        setOrderIntent(
+          preparedOrderIntent,
+        );
+
       } catch (error) {
         if (__DEV__) {
           console.error(
@@ -692,9 +791,12 @@ const Payment = ({
 
   const handlePlaceOrder =
     async () => {
-    if (placingOrder) {
-      return;
-    }
+      if (
+        placingOrder ||
+        placingOrderRef.current
+      ) {
+        return;
+      }
 
       // ======================================
       // DELIVERY ADDRESS
@@ -763,6 +865,27 @@ const Payment = ({
 
 
       // ======================================
+      // ORDER INTENT
+      // ======================================
+
+      if (
+        !currentUserId ||
+        !orderIntent
+          ?.idempotencyKey
+      ) {
+        showModal({
+          type: 'error',
+          title: 'Checkout Session',
+          message:
+            'Your secure checkout session is not ready. Please reload and try again.',
+          confirmText: 'OK',
+        });
+
+        return;
+      }
+
+
+      // ======================================
       // ONLINE / NON-COD PAYMENT ROUTING
       //
       // IMPORTANT:
@@ -795,6 +918,20 @@ const Payment = ({
         selectedMethod.code !==
         'cod'
       ) {
+        if (
+          !onlinePaymentAvailability.allowed
+        ) {
+          showModal({
+            type: 'warning',
+            title: 'Online Payment Unavailable',
+            message:
+              'Online payments are not available in this build. Please choose Cash on Delivery.',
+          });
+
+          return;
+        }
+
+
         const paymentScreen =
           paymentScreenMap[
             selectedMethod.code
@@ -842,6 +979,14 @@ const Payment = ({
 
             checkoutTotal:
               displayTotal,
+
+            orderIdempotencyKey:
+              orderIntent
+                .idempotencyKey,
+
+            paymentFlowMode:
+              onlinePaymentAvailability
+                .mode,
           },
         );
 
@@ -855,6 +1000,9 @@ const Payment = ({
       // ======================================
 
       try {
+        placingOrderRef.current =
+          true;
+
         setPlacingOrder(true);
 
 
@@ -870,6 +1018,25 @@ const Payment = ({
         // from the database.
         // =====================================
 
+        const createOrderRequest =
+          buildCreateOrderRequest({
+            idempotencyKey:
+              orderIntent
+                .idempotencyKey,
+            body: {
+              shipping_address_id:
+                shippingAddress.id,
+
+              payment_method:
+                'cod',
+
+              coupon_code:
+                couponCode ||
+                null,
+            },
+          });
+
+
         const {
           data,
           error,
@@ -877,19 +1044,7 @@ const Payment = ({
           await supabase.functions
             .invoke(
               'create-order',
-              {
-                body: {
-                  shipping_address_id:
-                    shippingAddress.id,
-
-                  payment_method:
-                    'cod',
-
-                  coupon_code:
-                    couponCode ||
-                    null,
-                },
-              },
+              createOrderRequest,
             );
 
 
@@ -941,6 +1096,25 @@ const Payment = ({
         // COD SUCCESS
         // =====================================
 
+        try {
+          await clearOrderIntent({
+            userId:
+              currentUserId,
+            idempotencyKey:
+              orderIntent
+                .idempotencyKey,
+          });
+        } catch (
+          cleanupError
+        ) {
+          if (__DEV__) {
+            console.error(
+              'Order Intent Cleanup Error:',
+              cleanupError.message,
+            );
+          }
+        }
+
         navigation.replace(
           'OrderSuccess',
           {
@@ -967,6 +1141,9 @@ const Payment = ({
         });
 
       } finally {
+        placingOrderRef.current =
+          false;
+
         setPlacingOrder(false);
       }
     };
@@ -1203,6 +1380,13 @@ const Payment = ({
                     key={
                       method.id
                     }
+                    accessibilityRole="radio"
+                    accessibilityState={{
+                      selected,
+                    }}
+                    accessibilityLabel={
+                      method.display_name
+                    }
                     onPress={() =>
                       setSelectedMethod(
                         method,
@@ -1314,6 +1498,28 @@ const Payment = ({
                 );
               },
             )}
+
+            {onlineMethodsUnavailable ? (
+              <View className="mb-4 flex-row items-start rounded-3xl bg-gray-100 p-5">
+                <View className="h-11 w-11 items-center justify-center rounded-xl bg-white">
+                  <Ionicons
+                    name="shield-checkmark-outline"
+                    size={21}
+                    color="black"
+                  />
+                </View>
+
+                <View className="ml-3 flex-1">
+                  <Text className="font-extrabold text-black">
+                    Online payments unavailable
+                  </Text>
+
+                  <Text className="mt-1 text-sm leading-5 text-gray-500">
+                    A verified payment provider is not enabled in this build. Cash on Delivery remains available.
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         ) : null}
 
@@ -1676,6 +1882,8 @@ const Payment = ({
             disabled={
               placingOrder ||
               !selectedMethod ||
+              !currentUserId ||
+              !orderIntent ||
               cartItems.length ===
                 0 ||
               hasInvalidItems
@@ -1684,6 +1892,8 @@ const Payment = ({
             className={`h-14 flex-row items-center justify-center rounded-2xl ${
               placingOrder ||
               !selectedMethod ||
+              !currentUserId ||
+              !orderIntent ||
               cartItems.length ===
                 0 ||
               hasInvalidItems

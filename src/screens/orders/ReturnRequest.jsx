@@ -64,6 +64,12 @@ const ReturnRequest = ({
 
 
   const [
+    existingReturn,
+    setExistingReturn,
+  ] = useState(null);
+
+
+  const [
     selectedItems,
     setSelectedItems,
   ] = useState({});
@@ -219,6 +225,74 @@ const ReturnRequest = ({
         if (orderError) {
           throw orderError;
         }
+
+
+        // =====================================
+        // EXISTING RETURN GUARD
+        // =====================================
+
+        const {
+          data:
+            existingReturnData,
+          error:
+            existingReturnError,
+        } =
+          await supabase
+            .from(
+              'return_requests',
+            )
+            .select(`
+              id,
+              order_id,
+              status,
+              requested_at
+            `)
+            .eq(
+              'order_id',
+              orderId,
+            )
+            .eq(
+              'user_id',
+              user.id,
+            )
+            .order(
+              'requested_at',
+              {
+                ascending:
+                  false,
+              },
+            )
+            .limit(1)
+            .maybeSingle();
+
+
+        if (
+          existingReturnError
+        ) {
+          throw existingReturnError;
+        }
+
+
+        if (
+          existingReturnData?.id
+        ) {
+          setExistingReturn(
+            existingReturnData,
+          );
+
+          navigation.replace(
+            'ReturnDetails',
+            {
+              returnRequestId:
+                existingReturnData.id,
+            },
+          );
+
+          return;
+        }
+
+
+        setExistingReturn(null);
 
 
         const {
@@ -392,7 +466,8 @@ const ReturnRequest = ({
 
   const canReturn =
     isDelivered &&
-    withinWindow;
+    withinWindow &&
+    !existingReturn?.id;
 
 
   // ==========================================
@@ -686,6 +761,90 @@ const ReturnRequest = ({
         setSubmitting(
           true,
         );
+
+
+        // =====================================
+        // FINAL DUPLICATE RETURN CHECK
+        // =====================================
+
+        const {
+          data: {
+            user,
+          },
+          error:
+            userError,
+        } =
+          await supabase.auth
+            .getUser();
+
+
+        if (
+          userError ||
+          !user
+        ) {
+          throw (
+            userError ||
+            new Error(
+              'User session not found.',
+            )
+          );
+        }
+
+
+        const {
+          data:
+            duplicateReturn,
+          error:
+            duplicateReturnError,
+        } =
+          await supabase
+            .from(
+              'return_requests',
+            )
+            .select(
+              'id',
+            )
+            .eq(
+              'order_id',
+              order.id,
+            )
+            .eq(
+              'user_id',
+              user.id,
+            )
+            .order(
+              'requested_at',
+              {
+                ascending:
+                  false,
+              },
+            )
+            .limit(1)
+            .maybeSingle();
+
+
+        if (
+          duplicateReturnError
+        ) {
+          throw duplicateReturnError;
+        }
+
+
+        if (
+          duplicateReturn?.id
+        ) {
+          closeModal();
+
+          navigation.replace(
+            'ReturnDetails',
+            {
+              returnRequestId:
+                duplicateReturn.id,
+            },
+          );
+
+          return;
+        }
 
 
         const {

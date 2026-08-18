@@ -4,7 +4,6 @@ import React, {
 
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -25,6 +24,10 @@ import {
 } from '@react-native-firebase/messaging';
 
 import { supabase } from '../../lib/supabase';
+
+import {
+  isPushNotificationsEnabled,
+} from '../../utils/pushConfig';
 
 import AppModal from '../../components/common/AppModal';
 
@@ -77,9 +80,11 @@ const Settings = ({
       }));
 
 
-      if (
-        Platform.OS === 'android'
-      ) {
+      const shouldCleanPushToken =
+        isPushNotificationsEnabled();
+
+
+      if (shouldCleanPushToken) {
         try {
           const messaging =
             getMessaging();

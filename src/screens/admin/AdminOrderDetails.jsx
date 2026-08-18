@@ -326,17 +326,100 @@ const AdminOrderDetails = ({
         }
 
 
+        const finalStatus =
+          String(
+            data?.status ||
+            newStatus,
+          )
+            .trim()
+            .toLowerCase();
+
+
+        let notificationDelivered =
+          true;
+
+
+        try {
+          const {
+            data:
+              notificationData,
+            error:
+              notificationError,
+          } =
+            await supabase
+              .functions
+              .invoke(
+                'create-order',
+                {
+                  body: {
+                    action:
+                      'notify_order_status',
+
+                    order_id:
+                      orderId,
+
+                    status:
+                      finalStatus,
+                  },
+                },
+              );
+
+
+          if (
+            notificationError ||
+            !notificationData
+              ?.success
+          ) {
+            notificationDelivered =
+              false;
+
+            if (__DEV__) {
+              console.error(
+                'Order status notification error:',
+                notificationError
+                  ?.message ||
+                  notificationData
+                    ?.error ||
+                  'Notification delivery failed.',
+              );
+            }
+          }
+
+        } catch (
+          notificationError
+        ) {
+          notificationDelivered =
+            false;
+
+          if (__DEV__) {
+            console.error(
+              'Order status notification error:',
+              notificationError
+                ?.message ||
+                notificationError,
+            );
+          }
+        }
+
+
         setOverlay({
           visible: true,
           type: 'success',
           title: 'Status Updated',
           message:
-            `Order status changed to ${
-              STATUS_LABELS[
-                data?.status ||
-                newStatus
-              ] || newStatus
-            }.`,
+            notificationDelivered
+              ? `Order status changed to ${
+                  STATUS_LABELS[
+                    finalStatus
+                  ] ||
+                  finalStatus
+                }. Customer email and push notification have been queued.`
+              : `Order status changed to ${
+                  STATUS_LABELS[
+                    finalStatus
+                  ] ||
+                  finalStatus
+                }. The order was updated, but customer notification delivery could not be confirmed.`,
           confirmText: 'OK',
           cancelText: 'Cancel',
           actionStatus: null,

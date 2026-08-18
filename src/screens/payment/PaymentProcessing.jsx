@@ -11,6 +11,8 @@ import React, {
   useState,
 } from 'react';
 
+import Config from 'react-native-config';
+
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
 import {
@@ -21,6 +23,29 @@ import {
 import {
   supabase,
 } from '../../lib/supabase';
+
+import {
+  ONLINE_PAYMENT_METHOD_CODES,
+  PRODUCTION_PAYMENT_ADAPTER_AVAILABLE,
+  buildCheckoutFingerprint,
+  buildCreateOrderRequest,
+  resolveOnlinePaymentAvailability,
+} from '../../utils/paymentOrder';
+
+import {
+  clearOrderIntent,
+  getActiveOrderIntent,
+  getOrCreateOrderIntent,
+} from '../../utils/orderIntentStorage';
+
+
+const onlinePaymentAvailability =
+  resolveOnlinePaymentAvailability({
+    isDev: __DEV__,
+    runtimeConfig: Config,
+    hasProviderAdapter:
+      PRODUCTION_PAYMENT_ADAPTER_AVAILABLE,
+  });
 
 
 const PaymentProcessing = ({
@@ -43,7 +68,13 @@ const PaymentProcessing = ({
     checkoutSubtotal = 0,
     checkoutDiscount = 0,
     checkoutTotal = 0,
+    orderIdempotencyKey = null,
+    paymentFlowMode = null,
   } = route.params || {};
+
+  const activePaymentFlowMode =
+    paymentFlowMode ||
+    (__DEV__ ? 'demo' : null);
 
   const startedRef =
     useRef(false);
@@ -52,7 +83,10 @@ const PaymentProcessing = ({
     message,
     setMessage,
   ] = useState(
-    'Preparing your test payment...',
+    activePaymentFlowMode ===
+      'demo'
+      ? 'Preparing your test payment...'
+      : 'Verifying payment configuration...',
   );
 
 
@@ -144,6 +178,9 @@ const PaymentProcessing = ({
           checkoutSubtotal,
           checkoutDiscount,
           checkoutTotal,
+          orderIdempotencyKey,
+          paymentFlowMode:
+            activePaymentFlowMode,
         },
       );
     };
@@ -153,6 +190,28 @@ const PaymentProcessing = ({
     async () => {
       try {
         if (
+          !onlinePaymentAvailability.allowed ||
+          activePaymentFlowMode !==
+            onlinePaymentAvailability.mode
+        ) {
+          throw new Error(
+            'Online payments are not available in this build. Please choose another payment method.',
+          );
+        }
+
+        // The only implemented online flow is the explicit development demo.
+        // Production must use a real provider checkout/verification adapter.
+        if (
+          activePaymentFlowMode !==
+            'demo' ||
+          !__DEV__
+        ) {
+          throw new Error(
+            'A verified production payment provider is required before online orders can be created.',
+          );
+        }
+
+        if (
           !shippingAddress?.id
         ) {
           throw new Error(
@@ -161,12 +220,7 @@ const PaymentProcessing = ({
         }
 
         if (
-          ![
-            'card',
-            'easypaisa',
-            'jazzcash',
-            'bank_transfer',
-          ].includes(
+          !ONLINE_PAYMENT_METHOD_CODES.includes(
             paymentMethod,
           )
         ) {
@@ -203,9 +257,82 @@ const PaymentProcessing = ({
           );
         }
 
+        let preparedOrderIntent =
+          await getActiveOrderIntent(
+            session.user.id,
+          );
+
+        if (
+          orderIdempotencyKey &&
+          preparedOrderIntent &&
+          preparedOrderIntent
+            .idempotencyKey !==
+            orderIdempotencyKey
+        ) {
+          throw new Error(
+            'This checkout attempt no longer matches your active order. Please return to payment and try again.',
+          );
+        }
+
+        if (!preparedOrderIntent) {
+          const fallbackFingerprint =
+            buildCheckoutFingerprint({
+              userId:
+                session.user.id,
+              shippingAddressId:
+                shippingAddress.id,
+              couponCode,
+              cartItems: [
+                {
+                  cartId:
+                    `payment-${paymentMethod}`,
+                  productId:
+                    `summary-${Number(
+                      displayAmount ||
+                        0,
+                    )}`,
+                  variantId: '',
+                  quantity:
+                    totalQuantity,
+                },
+              ],
+            });
+
+          preparedOrderIntent =
+            await getOrCreateOrderIntent({
+              userId:
+                session.user.id,
+              fingerprint:
+                fallbackFingerprint,
+              preferredIdempotencyKey:
+                orderIdempotencyKey,
+            });
+        }
+
         setMessage(
           `Processing ${paymentMethodName} test payment...`,
         );
+
+        const createOrderRequest =
+          buildCreateOrderRequest({
+            idempotencyKey:
+              preparedOrderIntent
+                .idempotencyKey,
+            body: {
+              shipping_address_id:
+                shippingAddress.id,
+
+              payment_method:
+                paymentMethod,
+
+              coupon_code:
+                couponCode ||
+                null,
+
+              payment_flow_mode:
+                'demo',
+            },
+          });
 
         const {
           data,
@@ -215,19 +342,7 @@ const PaymentProcessing = ({
             .functions
             .invoke(
               'create-order',
-              {
-                body: {
-                  shipping_address_id:
-                    shippingAddress.id,
-
-                  payment_method:
-                    paymentMethod,
-
-                  coupon_code:
-                    couponCode ||
-                    null,
-                },
-              },
+              createOrderRequest,
             );
 
         if (error) {
@@ -275,6 +390,25 @@ const PaymentProcessing = ({
         setMessage(
           'Payment successful.',
         );
+
+        try {
+          await clearOrderIntent({
+            userId:
+              session.user.id,
+            idempotencyKey:
+              preparedOrderIntent
+                .idempotencyKey,
+          });
+        } catch (
+          cleanupError
+        ) {
+          if (__DEV__) {
+            console.error(
+              'Order Intent Cleanup Error:',
+              cleanupError.message,
+            );
+          }
+        }
 
         navigation.replace(
           'PaymentSuccess',
@@ -464,11 +598,16 @@ const PaymentProcessing = ({
           </View>
 
 
-          {/* TEST NOTICE */}
+          {/* PAYMENT MODE NOTICE */}
           <View className="mt-5 w-full flex-row items-start rounded-3xl bg-gray-100 p-5">
             <View className="h-11 w-11 items-center justify-center rounded-xl bg-white">
               <Ionicons
-                name="flask-outline"
+                name={
+                  activePaymentFlowMode ===
+                  'demo'
+                    ? 'flask-outline'
+                    : 'shield-checkmark-outline'
+                }
                 size={21}
                 color="black"
               />
@@ -476,11 +615,17 @@ const PaymentProcessing = ({
 
             <View className="ml-3 flex-1">
               <Text className="font-extrabold text-black">
-                Test Transaction
+                {activePaymentFlowMode ===
+                'demo'
+                  ? 'Test Transaction'
+                  : 'Payment Verification'}
               </Text>
 
               <Text className="mt-1 text-sm leading-5 text-gray-500">
-                No real money is being charged during this demo payment.
+                {activePaymentFlowMode ===
+                'demo'
+                  ? 'No real money is being charged during this demo payment.'
+                  : 'A verified payment provider is required to complete this transaction.'}
               </Text>
             </View>
           </View>
