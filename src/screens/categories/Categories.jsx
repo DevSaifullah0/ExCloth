@@ -6,6 +6,7 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 
 import React, {
@@ -102,12 +103,15 @@ const Categories = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      edges={Platform.OS === 'android' ? ['top', 'left', 'right'] : undefined}
+      className="flex-1 bg-white"
+    >
       <ScrollView
         className="px-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: 32,
+          paddingBottom: Platform.OS === 'android' ? 0 : 32,
         }}
         refreshControl={
           <RefreshControl
@@ -163,7 +167,7 @@ const Categories = ({ navigation }) => {
         {/* LOADING */}
         {loading ? (
           <View className="items-center py-24">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
               <ActivityIndicator
                 size="large"
                 color="black"

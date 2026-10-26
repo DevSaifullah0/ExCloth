@@ -32,6 +32,14 @@ import CouponSection from '../../components/checkout/CouponSection';
 import AppModal from '../../components/common/AppModal';
 
 
+const normalizeColor = value =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ');
+
+
 const ADDRESS_COLUMNS = `
   id,
   user_id,
@@ -414,6 +422,77 @@ const Checkout = ({
           );
 
 
+          const productIds = [
+            ...new Set(
+              rawCart
+                .map(item => item.product_id)
+                .filter(
+                  id =>
+                    id !== null &&
+                    id !== undefined,
+                ),
+            ),
+          ];
+
+
+          let productImages = [];
+
+
+          if (productIds.length > 0) {
+            const {
+              data: imageData,
+              error: imageError,
+            } = await supabase
+              .from('product_images')
+              .select(`
+                id,
+                product_id,
+                image_url,
+                color,
+                is_primary,
+                sort_order
+              `)
+              .in('product_id', productIds)
+              .order('sort_order', {
+                ascending: true,
+              });
+
+
+            if (imageError) {
+              throw imageError;
+            }
+
+
+            productImages = imageData || [];
+          }
+
+
+          const imageMap = new Map();
+
+
+          productImages.forEach(image => {
+            const key =
+              `${String(image.product_id)}::${normalizeColor(image.color)}`;
+            const currentImage = imageMap.get(key);
+            const imageSort = Number(image.sort_order ?? 0);
+            const currentSort = Number(
+              currentImage?.sort_order ?? 0,
+            );
+            const shouldReplace =
+              !currentImage ||
+              (Boolean(image.is_primary) &&
+                !Boolean(currentImage.is_primary)) ||
+              (Boolean(image.is_primary) ===
+                Boolean(currentImage.is_primary) &&
+                imageSort < currentSort);
+
+
+            if (shouldReplace) {
+              imageMap.set(key, image);
+            }
+          });
+
+
           // =====================================
           // FORMAT CHECKOUT ITEMS
           // =====================================
@@ -432,6 +511,14 @@ const Checkout = ({
                           item.variant_id,
                         ),
                       ) || null
+                    : null;
+
+
+                const variantImage =
+                  variant?.color
+                    ? imageMap.get(
+                        `${String(product.id)}::${normalizeColor(variant.color)}`,
+                      )
                     : null;
 
 
@@ -486,6 +573,11 @@ const Checkout = ({
                   product,
 
                   variant,
+
+                  imageUrl:
+                    variantImage?.image_url ||
+                    product.image_url ||
+                    null,
 
                   quantity:
                     Number(
@@ -1182,11 +1274,10 @@ const Checkout = ({
               >
                 <View className="flex-row">
                   <View className="h-24 w-24 overflow-hidden rounded-2xl bg-white">
-                    {product.image_url ? (
+                    {item.imageUrl ? (
                       <Image
                         source={{
-                          uri:
-                            product.image_url,
+                          uri: item.imageUrl,
                         }}
                         className="h-full w-full"
                         resizeMode="contain"

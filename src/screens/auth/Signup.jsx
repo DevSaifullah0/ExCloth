@@ -9,6 +9,7 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
 } from 'react-native';
 
 import React, {
@@ -19,14 +20,34 @@ import {
   SafeAreaView,
 } from 'react-native-safe-area-context';
 
+import Ionicons from '@react-native-vector-icons/ionicons/static';
+
 import { supabase } from '../../lib/supabase';
 
 import AppModal from '../../components/common/AppModal';
+import { useAuth } from '../../context/AuthContext';
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+  },
+});
 
 
 const Signup = ({
   navigation,
 }) => {
+  const { showAccountCreatedNotice } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [
     firstName,
     setFirstName,
@@ -215,6 +236,25 @@ const Signup = ({
           throw error;
         }
 
+        if (
+          data.user &&
+          Array.isArray(data.user.identities) &&
+          data.user.identities.length === 0
+        ) {
+          showModal({
+            type: 'error',
+            title: 'Email Already In Use',
+            message:
+              'This email is already registered. Please log in or reset your password.',
+            confirmText: 'Go to Login',
+            onConfirm: () => {
+              closeModal();
+              navigation.navigate('Login');
+            },
+          });
+          return;
+        }
+
 
         // No role is selected or accepted from the signup form.
         // Normal signup accounts remain customer accounts.
@@ -222,26 +262,12 @@ const Signup = ({
 
 
         if (data.session) {
+          showAccountCreatedNotice();
           return;
         }
 
-
-        showModal({
-          type: 'success',
-          title:
-            'Verify Email',
-          message:
-            'Account created. Please verify your email before logging in.',
-          confirmText:
-            'Go to Login',
-          onConfirm: () => {
-            closeModal();
-
-            navigation.navigate(
-              'Login',
-            );
-          },
-        });
+        showAccountCreatedNotice();
+        navigation.navigate('Login');
 
       } catch (error) {
         showModal({
@@ -274,27 +300,26 @@ const Signup = ({
           className="flex-1"
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{
-            paddingBottom: 32,
-          }}
+          contentContainerStyle={styles.scrollContent}
         >
-          <View className="px-6">
-            <View className="mt-4 items-center">
+          <View style={styles.form}>
+            <View className="items-center">
               <Image
                 source={require('../../images/Logo.png')}
-                className="h-44 w-44"
+                className="h-40 w-50"
                 resizeMode="contain"
               />
             </View>
 
 
-            <View>
-              <Text className="text-3xl font-extrabold text-black">
-                Create Account
+            <View className="mt-6 items-center">
+              <Text className="text-[10px] font-bold tracking-[2px] text-gray-500">A GOOD PLACE TO START</Text>
+              <Text className="mt-2 text-3xl font-extrabold text-black">
+                Create your account.
               </Text>
 
-              <Text className="mt-1 text-sm text-gray-500">
-                Sign up to get started with your account
+              <Text className="mt-2 text-center text-sm leading-5 text-gray-500">
+                Join ExCloth and make every choice your own.
               </Text>
             </View>
 
@@ -302,7 +327,7 @@ const Signup = ({
             <View className="mt-5">
               <View className="flex-row gap-3">
                 <View className="flex-1">
-                  <Text className="mb-1.5 font-semibold text-black">
+                  <Text className="mb-2 font-semibold text-black">
                     First Name
                   </Text>
 
@@ -315,12 +340,12 @@ const Signup = ({
                     }
                     editable={!loading}
                     autoCapitalize="words"
-                    className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-4 text-black"
+                    className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-3 text-sm text-black"
                   />
                 </View>
 
                 <View className="flex-1">
-                  <Text className="mb-1.5 font-semibold text-black">
+                  <Text className="mb-2 font-semibold text-black">
                     Last Name
                   </Text>
 
@@ -333,7 +358,7 @@ const Signup = ({
                     }
                     editable={!loading}
                     autoCapitalize="words"
-                    className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-4 text-black"
+                    className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-3 text-sm text-black"
                   />
                 </View>
               </View>
@@ -379,40 +404,62 @@ const Signup = ({
                 Password
               </Text>
 
-              <TextInput
-                placeholder="Enter password"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={password}
-                onChangeText={
-                  setPassword
-                }
-                editable={!loading}
-                className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-4 text-black"
-              />
+              <View className="h-12 flex-row items-center rounded-xl border border-gray-300 bg-gray-50 px-4">
+                <TextInput
+                  placeholder="Enter password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showPassword}
+                  value={password}
+                  onChangeText={setPassword}
+                  editable={!loading}
+                  className="h-full flex-1 p-0 text-black"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(current => !current)}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                  hitSlop={10}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={21}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
 
 
               <Text className="mb-1.5 mt-3 font-semibold text-black">
                 Confirm Password
               </Text>
 
-              <TextInput
-                placeholder="Confirm password"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={
-                  confirmPassword
-                }
-                onChangeText={
-                  setConfirmPassword
-                }
-                editable={!loading}
-                returnKeyType="done"
-                onSubmitEditing={
-                  handleSignup
-                }
-                className="h-12 rounded-xl border border-gray-300 bg-gray-50 px-4 text-black"
-              />
+              <View className="h-12 flex-row items-center rounded-xl border border-gray-300 bg-gray-50 px-4">
+                <TextInput
+                  placeholder="Confirm password"
+                  placeholderTextColor="#9CA3AF"
+                  secureTextEntry={!showConfirmPassword}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  editable={!loading}
+                  returnKeyType="done"
+                  onSubmitEditing={handleSignup}
+                  className="h-full flex-1 p-0 text-black"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(current => !current)}
+                  disabled={loading}
+                  accessibilityRole="button"
+                  accessibilityLabel={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                  hitSlop={10}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                    size={21}
+                    color="#6B7280"
+                  />
+                </TouchableOpacity>
+              </View>
 
 
               <TouchableOpacity
@@ -421,7 +468,7 @@ const Signup = ({
                 }
                 disabled={loading}
                 activeOpacity={0.8}
-                className={`mt-5 h-12 items-center justify-center rounded-xl ${
+                className={`mt-6 h-14 items-center justify-center rounded-2xl ${
                   loading
                     ? 'bg-gray-400'
                     : 'bg-black'
@@ -432,7 +479,7 @@ const Signup = ({
                     color="white"
                   />
                 ) : (
-                  <Text className="text-base font-bold text-white">
+                  <Text className="text-sm font-bold tracking-wide text-white">
                     Create Account
                   </Text>
                 )}
@@ -440,7 +487,7 @@ const Signup = ({
 
 
               <View className="mt-4 flex-row justify-center">
-                <Text className="text-sm text-gray-500">
+                <Text className="text-base text-gray-500">
                   Already have an account?{' '}
                 </Text>
 
@@ -452,7 +499,7 @@ const Signup = ({
                   }
                   disabled={loading}
                 >
-                  <Text className="text-sm font-bold text-black">
+                  <Text className="text-base font-bold text-black">
                     Login
                   </Text>
                 </TouchableOpacity>

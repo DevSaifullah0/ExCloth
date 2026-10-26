@@ -7,7 +7,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 
 import React, {
@@ -19,6 +20,24 @@ import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '../../lib/supabase';
+import AppModal from '../../components/common/AppModal';
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+  },
+  forwardIcon: {
+    marginLeft: 8,
+  },
+});
 
 const ForgotPassword = ({
   navigation,
@@ -28,6 +47,40 @@ const ForgotPassword = ({
 
   const [loading, setLoading] =
     useState(false);
+
+  const [modal, setModal] = useState({
+    visible: false,
+    type: 'info',
+    title: '',
+    message: '',
+    confirmText: 'OK',
+    onConfirm: null,
+  });
+
+  const closeModal = () => {
+    setModal(current => ({
+      ...current,
+      visible: false,
+      onConfirm: null,
+    }));
+  };
+
+  const showModal = ({
+    type = 'info',
+    title = '',
+    message = '',
+    confirmText = 'OK',
+    onConfirm = null,
+  }) => {
+    setModal({
+      visible: true,
+      type,
+      title,
+      message,
+      confirmText,
+      onConfirm,
+    });
+  };
 
   const handleResetPassword =
     async () => {
@@ -40,10 +93,11 @@ const ForgotPassword = ({
         .toLowerCase();
 
       if (!cleanEmail) {
-        Alert.alert(
-          'Email Required',
-          'Please enter your email address.',
-        );
+        showModal({
+          type: 'warning',
+          title: 'Email Required',
+          message: 'Please enter your email address.',
+        });
 
         return;
       }
@@ -52,10 +106,11 @@ const ForgotPassword = ({
         !cleanEmail.includes('@') ||
         !cleanEmail.includes('.')
       ) {
-        Alert.alert(
-          'Invalid Email',
-          'Please enter a valid email address.',
-        );
+        showModal({
+          type: 'warning',
+          title: 'Invalid Email',
+          message: 'Please enter a valid email address.',
+        });
 
         return;
       }
@@ -73,24 +128,16 @@ const ForgotPassword = ({
           throw error;
         }
 
-        Alert.alert(
-          'Code Sent',
-          'Check your email for the password reset verification code.',
-          [
-            {
-              text: 'Continue',
-
-              onPress: () =>
-                navigation.navigate(
-                  'OTP',
-                  {
-                    email:
-                      cleanEmail,
-                  },
-                ),
-            },
-          ],
-        );
+        showModal({
+          type: 'success',
+          title: 'Verification code sent',
+          message: 'Check your email for the password reset code.',
+          confirmText: 'Continue',
+          onConfirm: () => {
+            closeModal();
+            navigation.navigate('OTP', { email: cleanEmail });
+          },
+        });
 
       } catch (error) {
         if (__DEV__) {
@@ -100,10 +147,12 @@ const ForgotPassword = ({
           );
         }
 
-        Alert.alert(
-          'Reset Failed',
-          getUserFriendlyError(error, 'Unable to send verification code.'),
-        );
+        showModal({
+          type: 'error',
+          title: 'Unable to send code',
+          message: getUserFriendlyError(error, 'Unable to send verification code.'),
+          confirmText: 'Try Again',
+        });
 
       } finally {
         setLoading(false);
@@ -122,31 +171,21 @@ const ForgotPassword = ({
         }
       >
 
-        <View className="flex-1 px-5">
-
-          {/* Back */}
-
-          <TouchableOpacity
-            onPress={() =>
-              navigation.goBack()
-            }
-            className="mt-4 h-10 w-10 items-center justify-center rounded-full bg-gray-100"
-          >
-            <Ionicons
-              name="arrow-back-outline"
-              size={22}
-              color="black"
-            />
-          </TouchableOpacity>
-
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={styles.form}>
 
           {/* Header */}
 
-          <Text className="mt-10 text-3xl font-extrabold text-black">
+          <Text className="mt-10 text-center text-3xl font-extrabold text-black">
             Forgot Password?
           </Text>
 
-          <Text className="mt-3 leading-6 text-gray-500">
+          <Text className="mt-3 text-center leading-6 text-gray-500">
             Enter your registered email address and we will send you a verification code.
           </Text>
 
@@ -196,7 +235,7 @@ const ForgotPassword = ({
               />
             ) : (
               <>
-                <Text className="text-base font-bold text-white">
+                <Text className="text-sm font-bold tracking-wide text-white">
                   Send Verification Code
                 </Text>
 
@@ -204,18 +243,48 @@ const ForgotPassword = ({
                   name="arrow-forward-outline"
                   size={20}
                   color="white"
-                  style={{
-                    marginLeft: 8,
-                  }}
+                  style={styles.forwardIcon}
                 />
               </>
             )}
 
           </TouchableOpacity>
 
+          <View className="mt-5 flex-row items-center justify-center">
+            <Text className="text-base text-gray-500">
+              Know your password?{' '}
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Return to login"
+              onPress={() => navigation.navigate('Login')}
+              disabled={loading}
+            >
+              <Text className="text-base font-bold text-black">Login</Text>
+            </TouchableOpacity>
+          </View>
+
         </View>
+        </ScrollView>
 
       </KeyboardAvoidingView>
+
+      <AppModal
+        visible={modal.visible}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        confirmText={modal.confirmText}
+        onCancel={closeModal}
+        onConfirm={() => {
+          if (typeof modal.onConfirm === 'function') {
+            modal.onConfirm();
+            return;
+          }
+
+          closeModal();
+        }}
+      />
 
     </SafeAreaView>
   );

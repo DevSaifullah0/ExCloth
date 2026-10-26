@@ -27,6 +27,7 @@ import {
 } from '@react-navigation/native';
 
 import { supabase } from '../../lib/supabase';
+import AdminScreenHeader from '../../components/admin/AdminScreenHeader';
 
 
 const FILTERS = [
@@ -34,6 +35,7 @@ const FILTERS = [
   'active',
   'banned',
   'verified',
+  'unverified',
 ];
 
 
@@ -224,6 +226,14 @@ const AdminUsers = ({
               selectedFilter ===
                 'verified' &&
               !verified
+            ) {
+              return false;
+            }
+
+            if (
+              selectedFilter ===
+                'unverified' &&
+              verified
             ) {
               return false;
             }
@@ -499,7 +509,7 @@ const AdminUsers = ({
   if (loading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
           <ActivityIndicator
             size="large"
             color="black"
@@ -524,39 +534,12 @@ const AdminUsers = ({
       ]}
     >
       <View className="px-5">
-        <View className="mt-4 flex-row items-center">
-          <TouchableOpacity
-            onPress={() =>
-              navigation.goBack()
-            }
-            activeOpacity={0.8}
-            className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100"
-          >
-            <Ionicons
-              name="arrow-back-outline"
-              size={22}
-              color="black"
-            />
-          </TouchableOpacity>
-
-          <View className="ml-4 flex-1">
-            <Text className="text-3xl font-extrabold text-black">
-              Users
-            </Text>
-
-            <Text className="mt-1 text-sm text-gray-500">
-              Manage customers and account status.
-            </Text>
-          </View>
-
-          <View className="h-11 w-11 items-center justify-center rounded-2xl bg-black">
-            <Ionicons
-              name="people-outline"
-              size={22}
-              color="white"
-            />
-          </View>
-        </View>
+        <AdminScreenHeader
+          navigation={navigation}
+          title="Users"
+          subtitle="Manage customers and account status."
+          icon="people-outline"
+        />
 
         <View className="mt-6 flex-row">
           <View className="mr-3 flex-1 rounded-3xl bg-black p-4">

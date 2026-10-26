@@ -76,6 +76,12 @@ yarn-error.log
 
 # env
 .env
+
+# Local security probes may contain project endpoints or test credentials.
+/.supa_probe.py
+/.anon_sweep.py
+/.anon_write_sweep.py
+
 # Editor
 .vscode/
 

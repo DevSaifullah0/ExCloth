@@ -22,6 +22,7 @@ import { supabase } from '../../lib/supabase';
 
 const Search = ({ navigation }) => {
   const [search, setSearch] = useState('');
+  const [sortMode, setSortMode] = useState('relevance');
 
   const [products, setProducts] = useState([]);
 
@@ -265,6 +266,18 @@ const Search = ({ navigation }) => {
       );
     };
 
+  const displayedProducts = [...products].sort((left, right) => {
+    if (sortMode === 'price-low') {
+      return Number(left.price || 0) - Number(right.price || 0);
+    }
+
+    if (sortMode === 'price-high') {
+      return Number(right.price || 0) - Number(left.price || 0);
+    }
+
+    return 0;
+  });
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1 px-5">
@@ -359,7 +372,7 @@ const Search = ({ navigation }) => {
         {/* LOADING */}
         {loading ? (
           <View className="mt-16 items-center">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
               <ActivityIndicator
                 size="large"
                 color="black"
@@ -369,6 +382,45 @@ const Search = ({ navigation }) => {
             <Text className="mt-4 font-semibold text-gray-500">
               Searching products...
             </Text>
+          </View>
+        ) : null}
+
+
+        {!loading && !errorMessage && products.length > 0 ? (
+          <View className="mt-5">
+            <Text className="mb-2 text-sm font-bold text-gray-600">
+              Sort by
+            </Text>
+            <View className="flex-row flex-wrap">
+              {[
+                { key: 'relevance', label: 'Relevance' },
+                { key: 'price-low', label: 'Price: Low to High' },
+                { key: 'price-high', label: 'Price: High to Low' },
+              ].map(option => {
+                const selected = sortMode === option.key;
+
+                return (
+                  <TouchableOpacity
+                    key={option.key}
+                    onPress={() => setSortMode(option.key)}
+                    accessibilityRole="tab"
+                    accessibilityLabel={option.label}
+                    accessibilityState={{ selected }}
+                    className={`mr-2 rounded-full px-3 py-2 ${
+                      selected ? 'bg-black' : 'bg-gray-100'
+                    }`}
+                  >
+                    <Text
+                      className={`text-[11px] font-bold ${
+                        selected ? 'text-white' : 'text-black'
+                      }`}
+                    >
+                      {option.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
         ) : null}
 
@@ -465,7 +517,7 @@ const Search = ({ navigation }) => {
             </View>
 
             <View className="flex-row flex-wrap justify-between">
-              {products.map(
+              {displayedProducts.map(
                 product => {
                   const salePercentage =
                     getSalePercentage(

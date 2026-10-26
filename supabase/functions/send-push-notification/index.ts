@@ -45,6 +45,7 @@ const ALLOWED_CUSTOM_DATA_KEYS = new Set([
   'screen',
   'status',
   'slug',
+  'product_id',
 ]);
 
 const jsonResponse = (body: unknown, status = 200) => {
@@ -117,6 +118,10 @@ const preferenceForNotification = (
     type.includes('coupon')
   ) {
     return 'coupons';
+  }
+
+  if (type.includes('restock') || type.includes('price_drop')) {
+    return 'promotions';
   }
 
   if (

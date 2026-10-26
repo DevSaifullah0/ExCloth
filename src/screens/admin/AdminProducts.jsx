@@ -27,6 +27,7 @@ import {
 } from '@react-navigation/native';
 
 import { supabase } from '../../lib/supabase';
+import AdminScreenHeader from '../../components/admin/AdminScreenHeader';
 
 
 const FILTERS = [
@@ -460,7 +461,7 @@ const AdminProducts = ({
   if (loading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
           <ActivityIndicator
             size="large"
             color="black"
@@ -486,39 +487,12 @@ const AdminProducts = ({
     >
       <View className="px-5">
         {/* HEADER */}
-        <View className="mt-4 flex-row items-center">
-          <TouchableOpacity
-            onPress={() =>
-              navigation.goBack()
-            }
-            activeOpacity={0.8}
-            className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100"
-          >
-            <Ionicons
-              name="arrow-back-outline"
-              size={22}
-              color="black"
-            />
-          </TouchableOpacity>
-
-          <View className="ml-4 flex-1">
-            <Text className="text-3xl font-extrabold text-black">
-              Products
-            </Text>
-
-            <Text className="mt-1 text-sm text-gray-500">
-              Manage products, images and inventory.
-            </Text>
-          </View>
-
-          <View className="h-11 w-11 items-center justify-center rounded-2xl bg-black">
-            <Ionicons
-              name="cube-outline"
-              size={22}
-              color="white"
-            />
-          </View>
-        </View>
+        <AdminScreenHeader
+          navigation={navigation}
+          title="Products"
+          subtitle="Manage products, images and inventory."
+          icon="cube-outline"
+        />
 
         {/* ADD PRODUCT */}
         <TouchableOpacity

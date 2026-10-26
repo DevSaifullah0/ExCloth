@@ -139,24 +139,23 @@ begin
       where procedures.oid = to_regprocedure(
         'public.unregister_push_token_secure(text)'
       )
-        and procedures.prorettype = 'bool'::regtype
+        and procedures.prorettype = 'void'::regtype
     ) then
     raise exception
-      'Existing unregister_push_token_secure(text) must return boolean before it can be safely replaced.';
+      'Existing unregister_push_token_secure(text) must return void before it can be safely replaced.';
   end if;
 
   -- Replace a same-signature body with the reviewed ownership check before any
   -- authenticated grant is applied. Incompatible return types/overloads abort.
   execute $function$
       create or replace function public.unregister_push_token_secure(p_token text)
-      returns boolean
+      returns void
       language plpgsql
       security definer
       set search_path = pg_catalog
       as $body$
       declare
         requesting_user_id uuid := auth.uid();
-        deleted_count integer;
       begin
         if requesting_user_id is null then
           raise exception using
@@ -173,9 +172,6 @@ begin
         delete from public.user_push_tokens
         where user_id = requesting_user_id
           and token::text = p_token;
-
-        get diagnostics deleted_count = row_count;
-        return deleted_count > 0;
       end
       $body$
   $function$;

@@ -4,6 +4,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  TextInput,
 } from 'react-native';
 
 import React, {
@@ -36,6 +38,12 @@ const STATUS_LABELS = {
   cancelled: 'Cancelled',
 };
 
+const styles = StyleSheet.create({
+  courierInputText: {
+    color: '#000000',
+  },
+});
+
 
 const AdminOrderDetails = ({
   navigation,
@@ -48,6 +56,15 @@ const AdminOrderDetails = ({
 
   const [details, setDetails] =
     useState(null);
+
+  const [shipment, setShipment] = useState(null);
+  const [carrierName, setCarrierName] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [trackingUrl, setTrackingUrl] = useState('');
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
+  const [shipmentStatus, setShipmentStatus] = useState('picked_up');
+  const [shipmentDescription, setShipmentDescription] = useState('');
+  const [savingShipment, setSavingShipment] = useState(false);
 
   const [loading, setLoading] =
     useState(true);
@@ -168,6 +185,88 @@ const AdminOrderDetails = ({
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  useEffect(() => {
+    let active = true;
+    supabase
+      .from('order_shipments')
+      .select('carrier_name, tracking_number, tracking_url, estimated_delivery_at')
+      .eq('order_id', orderId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) throw error;
+        if (!active || !data) return;
+        setShipment(data);
+        setCarrierName(data.carrier_name || '');
+        setTrackingNumber(data.tracking_number || '');
+        setTrackingUrl(data.tracking_url || '');
+        setEstimatedDelivery(data.estimated_delivery_at ? data.estimated_delivery_at.slice(0, 10) : '');
+      })
+      .catch(error => {
+        if (__DEV__) console.error('Shipment details error:', error.message);
+      });
+    return () => { active = false; };
+  }, [orderId]);
+
+  const saveShipment = async () => {
+    const cleanCarrier = carrierName.trim();
+    const cleanTrackingNumber = trackingNumber.trim();
+    const cleanDescription = shipmentDescription.trim();
+    const cleanTrackingUrl = trackingUrl.trim();
+    if (cleanCarrier.length < 2 || cleanTrackingNumber.length < 2 || cleanDescription.length < 2) {
+      setOverlay({ visible: true, type: 'info', title: 'Details required', message: 'Enter a courier, tracking number and update description.', confirmText: 'OK', cancelText: 'Cancel', actionStatus: null });
+      return;
+    }
+    if (cleanTrackingUrl && !/^https?:\/\/\S+$/i.test(cleanTrackingUrl)) {
+      setOverlay({ visible: true, type: 'info', title: 'Invalid tracking URL', message: 'Enter a link starting with http:// or https://, or leave this optional field blank.', confirmText: 'OK', cancelText: 'Cancel', actionStatus: null });
+      return;
+    }
+    let estimatedDeliveryAt = null;
+    if (estimatedDelivery.trim()) {
+      const parsedDate = new Date(estimatedDelivery.trim());
+      if (Number.isNaN(parsedDate.getTime())) {
+        setOverlay({ visible: true, type: 'info', title: 'Invalid date', message: 'Use YYYY-MM-DD for estimated delivery.', confirmText: 'OK', cancelText: 'Cancel', actionStatus: null });
+        return;
+      }
+      estimatedDeliveryAt = parsedDate.toISOString();
+    }
+    setSavingShipment(true);
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Admin session not found.');
+      const shipmentPayload = {
+        order_id: orderId,
+        carrier_name: cleanCarrier,
+        tracking_number: cleanTrackingNumber,
+        tracking_url: cleanTrackingUrl || null,
+        estimated_delivery_at: estimatedDeliveryAt,
+        updated_by: authData.user.id,
+      };
+      const { data: savedShipment, error: shipmentError } = await supabase
+        .from('order_shipments')
+        .upsert(shipmentPayload, { onConflict: 'order_id' })
+        .select('carrier_name, tracking_number, tracking_url, estimated_delivery_at')
+        .single();
+      if (shipmentError) throw shipmentError;
+      const { error: eventError } = await supabase.from('order_shipment_events').insert({
+        order_id: orderId,
+        status: shipmentStatus,
+        description: cleanDescription,
+        created_by: authData.user.id,
+      });
+      if (eventError) throw eventError;
+      setShipment(savedShipment);
+      setShipmentDescription('');
+      setOverlay({ visible: true, type: 'success', title: 'Tracking updated', message: 'Courier tracking details and customer update were saved.', confirmText: 'Done', cancelText: 'Cancel', actionStatus: null });
+    } catch (error) {
+      const message = String(error?.message || '');
+      const isInvalidTrackingUrl = message.includes('order_shipments_tracking_url_ck');
+      setOverlay({ visible: true, type: 'error', title: 'Unable to save tracking', message: isInvalidTrackingUrl ? 'Enter a tracking link starting with http:// or https://, or leave the optional field blank.' : message || 'Please try again.', confirmText: 'OK', cancelText: 'Cancel', actionStatus: null });
+    } finally {
+      setSavingShipment(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -720,6 +819,27 @@ const AdminOrderDetails = ({
         <Text className="mt-7 text-xl font-extrabold text-black">
           Order Items
         </Text>
+
+        <View className="mt-7 rounded-3xl border border-gray-200 bg-white p-5">
+          <Text className="text-lg font-extrabold text-black">Courier tracking</Text>
+          <Text className="mt-1 text-sm text-gray-500">Add the courier and a customer-visible tracking update.</Text>
+          <TextInput value={carrierName} onChangeText={setCarrierName} maxLength={80} placeholder="Courier name" placeholderTextColor="#6B7280" selectionColor="#000000" style={styles.courierInputText} className="mt-4 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+          <TextInput value={trackingNumber} onChangeText={setTrackingNumber} maxLength={120} placeholder="Tracking number" placeholderTextColor="#6B7280" selectionColor="#000000" style={styles.courierInputText} className="mt-3 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+          <TextInput value={trackingUrl} onChangeText={setTrackingUrl} maxLength={1000} autoCapitalize="none" keyboardType="url" placeholder="https://tracking-link (optional)" placeholderTextColor="#6B7280" selectionColor="#000000" style={styles.courierInputText} className="mt-3 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+          <TextInput value={estimatedDelivery} onChangeText={setEstimatedDelivery} maxLength={10} placeholder="Estimated delivery (YYYY-MM-DD)" placeholderTextColor="#6B7280" selectionColor="#000000" style={styles.courierInputText} className="mt-3 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+          <Text className="mb-2 mt-4 text-sm font-bold text-black">Courier status</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {['label_created', 'picked_up', 'in_transit', 'out_for_delivery', 'delivered', 'exception'].map(value => (
+              <TouchableOpacity key={value} onPress={() => setShipmentStatus(value)} className={`rounded-full px-3 py-2 ${shipmentStatus === value ? 'bg-black' : 'bg-gray-100'}`}>
+                <Text className={`text-xs font-bold capitalize ${shipmentStatus === value ? 'text-white' : 'text-gray-700'}`}>{value.replaceAll('_', ' ')}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput value={shipmentDescription} onChangeText={setShipmentDescription} maxLength={500} multiline placeholder="Update message for the customer" placeholderTextColor="#6B7280" selectionColor="#000000" style={styles.courierInputText} className="mt-3 min-h-20 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+          <TouchableOpacity onPress={saveShipment} disabled={savingShipment} className="mt-4 h-12 flex-row items-center justify-center rounded-2xl bg-black">
+            {savingShipment ? <ActivityIndicator color="white" /> : <Text className="font-extrabold text-white">{shipment ? 'Save tracking update' : 'Add tracking'}</Text>}
+          </TouchableOpacity>
+        </View>
 
 
         <View className="mt-4">

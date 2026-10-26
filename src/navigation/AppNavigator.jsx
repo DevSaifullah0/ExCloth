@@ -42,6 +42,8 @@ import ChangePassword from '../screens/settings/ChangePassword';
 import NotificationSettings from '../screens/settings/NotificationSettings';
 import Preferences from '../screens/settings/Preferences';
 import HelpSupport from '../screens/settings/HelpSupport';
+import SupportTickets from '../screens/support/SupportTickets';
+import SupportTicketDetails from '../screens/support/SupportTicketDetails';
 import Legal from '../screens/settings/Legal';
 import PolicyDetails from '../screens/settings/PolicyDetails';
 import About from '../screens/settings/About';
@@ -239,6 +241,16 @@ const AppNavigator = () => {
       <Stack.Screen
         name="HelpSupport"
         component={HelpSupport}
+      />
+
+      <Stack.Screen
+        name="SupportTickets"
+        component={SupportTickets}
+      />
+
+      <Stack.Screen
+        name="SupportTicketDetails"
+        component={SupportTicketDetails}
       />
 
       <Stack.Screen

@@ -304,7 +304,7 @@ select ok(
       and procedures.pronargs = 1
       and procedures.proargnames[1:1] = array['p_token']::text[]
       and oidvectortypes(procedures.proargtypes) = 'text'
-      and procedures.prorettype = 'bool'::regtype
+      and procedures.prorettype = 'void'::regtype
       and procedures.prosecdef
       and procedures.provolatile = 'v'
       and position('auth.uid()' in procedures.prosrc) > 0

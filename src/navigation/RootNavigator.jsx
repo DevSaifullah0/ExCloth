@@ -1,7 +1,18 @@
 import React, {
   useEffect,
   useRef,
+  useState,
 } from 'react';
+
+import {
+  ActivityIndicator,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
 
 import {
   NavigationContainer,
@@ -17,6 +28,7 @@ import SplashScreen from '../screens/splash/SplashScreen';
 import AuthNavigator from './AuthNavigator';
 import AppNavigator from './AppNavigator';
 import AdminNavigator from './AdminNavigator';
+import AppModal from '../components/common/AppModal';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -28,6 +40,7 @@ import {
 import {
   isPushNotificationsEnabled,
 } from '../utils/pushConfig';
+import useInternetConnection from '../hooks/useInternetConnection';
 
 
 const navigationRef =
@@ -35,11 +48,22 @@ const navigationRef =
 
 
 const RootNavigator = () => {
+  const [splashCompleted, setSplashCompleted] = useState(false);
   const {
     session,
     loading,
+    roleLoading,
     isAdmin,
+    accountCreatedNoticeVisible,
+    dismissAccountCreatedNotice,
   } = useAuth();
+
+  const { isConnected, checking, retryConnection } = useInternetConnection();
+
+  useEffect(() => {
+    const splashTimer = setTimeout(() => setSplashCompleted(true), 1200);
+    return () => clearTimeout(splashTimer);
+  }, []);
 
   const sessionRef =
     useRef(session);
@@ -49,6 +73,9 @@ const RootNavigator = () => {
 
   const loadingRef =
     useRef(loading);
+
+  const roleLoadingRef =
+    useRef(roleLoading);
 
   const navigationReadyRef =
     useRef(false);
@@ -73,8 +100,11 @@ const RootNavigator = () => {
     loadingRef.current =
       loading;
 
+    roleLoadingRef.current =
+      roleLoading;
 
-    if (loading) {
+
+    if (loading || !isConnected) {
       navigationReadyRef.current =
         false;
 
@@ -84,6 +114,8 @@ const RootNavigator = () => {
 
     if (
       session &&
+      !roleLoading &&
+      isConnected &&
       navigationReadyRef.current &&
       pendingNotificationRef.current
     ) {
@@ -105,6 +137,8 @@ const RootNavigator = () => {
     session,
     isAdmin,
     loading,
+    roleLoading,
+    isConnected,
   ]);
 
 
@@ -172,6 +206,7 @@ const RootNavigator = () => {
 
       if (
         loadingRef.current ||
+        roleLoadingRef.current ||
         !sessionRef.current ||
         !navigationReadyRef.current ||
         !navigationRef.isReady()
@@ -210,27 +245,38 @@ const RootNavigator = () => {
         if (
           data.return_request_id
         ) {
-          navigationRef.navigate(
-            'AdminReturnDetails',
-            {
-              returnRequestId:
-                data.return_request_id,
+          navigationRef.navigate('AdminDashboard', {
+            screen: 'Returns',
+            params: {
+              screen: 'AdminReturnDetails',
+              params: {
+                returnRequestId: data.return_request_id,
+              },
             },
-          );
+          });
 
           return;
         }
 
 
         if (data.order_id) {
-          navigationRef.navigate(
-            'AdminOrderDetails',
-            {
-              orderId:
-                data.order_id,
+          navigationRef.navigate('AdminDashboard', {
+            screen: 'Orders',
+            params: {
+              screen: 'AdminOrderDetails',
+              params: {
+                orderId: data.order_id,
+              },
             },
-          );
+          });
 
+          return;
+        }
+
+        if (data.screen === 'AdminProducts' || data.type === 'low_stock') {
+          navigationRef.navigate('AdminDashboard', {
+            screen: 'Products',
+          });
           return;
         }
 
@@ -266,6 +312,16 @@ const RootNavigator = () => {
           },
         );
 
+        return;
+      }
+
+      if (data.product_id) {
+        navigationRef.navigate('ProductDetails', {
+          product: {
+            id: Number(data.product_id),
+            slug: data.slug || null,
+          },
+        });
         return;
       }
 
@@ -392,12 +448,45 @@ const RootNavigator = () => {
   }, []);
 
 
-  if (loading) {
+  if (!splashCompleted || loading) {
     return <SplashScreen />;
   }
 
+  if (isConnected === null) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+        <View className="h-14 w-14 items-center justify-center rounded-2xl bg-gray-100">
+          <ActivityIndicator size="large" color="black" />
+        </View>
+        <Text className="mt-4 font-semibold text-gray-600">Checking internet connection...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white px-7">
+        <View className="h-20 w-20 items-center justify-center rounded-3xl bg-gray-100">
+          <Ionicons name="cloud-offline-outline" size={38} color="#DC2626" />
+        </View>
+        <Text className="mt-6 text-2xl font-extrabold text-black">Connection error</Text>
+        <Text className="mt-2 text-center leading-6 text-gray-500">
+          Internet connection nahi mil raha. Wi-Fi ya mobile data check karke dobara try karein.
+        </Text>
+        <TouchableOpacity
+          onPress={retryConnection}
+          disabled={checking}
+          accessibilityRole="button"
+          className="mt-6 h-12 min-w-40 flex-row items-center justify-center rounded-2xl bg-black px-6"
+        >
+          {checking ? <ActivityIndicator color="white" /> : <Text className="font-extrabold text-white">Retry connection</Text>}
+        </TouchableOpacity>
+      </SafeAreaView>
+    );
+  }
 
   return (
+    <>
     <NavigationContainer
       ref={navigationRef}
       onReady={() => {
@@ -436,6 +525,16 @@ const RootNavigator = () => {
         />
       )}
     </NavigationContainer>
+    <AppModal
+      visible={accountCreatedNoticeVisible}
+      type="success"
+      title="Account Created Successfully"
+      message="Your account has been created successfully."
+      confirmText="Continue"
+      onConfirm={dismissAccountCreatedNotice}
+      onCancel={dismissAccountCreatedNotice}
+    />
+    </>
   );
 };
 

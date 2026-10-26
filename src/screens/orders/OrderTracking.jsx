@@ -5,6 +5,7 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
+  Linking,
 } from 'react-native';
 
 import React, {
@@ -43,6 +44,9 @@ const OrderTracking = ({
     order,
     setOrder,
   ] = useState(null);
+
+  const [shipment, setShipment] = useState(null);
+  const [shipmentEvents, setShipmentEvents] = useState([]);
 
 
   const [
@@ -176,6 +180,25 @@ const OrderTracking = ({
             data,
           );
 
+          const [shipmentResult, eventsResult] = await Promise.all([
+            supabase
+              .from('order_shipments')
+              .select('carrier_name, tracking_number, tracking_url, estimated_delivery_at, shipped_at')
+              .eq('order_id', orderId)
+              .maybeSingle(),
+            supabase
+              .from('order_shipment_events')
+              .select('id, status, description, occurred_at')
+              .eq('order_id', orderId)
+              .order('occurred_at', { ascending: false })
+              .limit(50),
+          ]);
+
+          if (shipmentResult.error) throw shipmentResult.error;
+          if (eventsResult.error) throw eventsResult.error;
+          setShipment(shipmentResult.data || null);
+          setShipmentEvents(eventsResult.data || []);
+
         } catch (error) {
           if (__DEV__) {
             console.error(
@@ -228,7 +251,7 @@ const OrderTracking = ({
     const channel =
       supabase
         .channel(
-          `order-tracking-${orderId}`,
+          `order-tracking-${orderId}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
         )
         .on(
           'postgres_changes',
@@ -287,6 +310,28 @@ const OrderTracking = ({
   }, [
     orderId,
   ]);
+
+  useEffect(() => {
+    if (!orderId) return undefined;
+
+    const channel = supabase
+      .channel(`shipment-tracking-${orderId}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'order_shipment_events',
+        filter: `order_id=eq.${orderId}`,
+      }, () => fetchOrder(false))
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'order_shipments',
+        filter: `order_id=eq.${orderId}`,
+      }, () => fetchOrder(false))
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
+  }, [fetchOrder, orderId]);
 
 
   // ==========================================
@@ -787,6 +832,53 @@ const OrderTracking = ({
             />
           </View>
         </View>
+
+        {shipment ? (
+          <View className="mt-6 rounded-3xl border border-gray-200 bg-white p-5">
+            <View className="flex-row items-center">
+              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100">
+                <Ionicons name="cube-outline" size={22} color="black" />
+              </View>
+              <View className="ml-3 flex-1">
+                <Text className="text-lg font-extrabold text-black">Courier tracking</Text>
+                <Text className="mt-1 text-sm text-gray-500">{shipment.carrier_name}</Text>
+              </View>
+            </View>
+            <Text className="mt-5 text-xs font-semibold uppercase tracking-wider text-gray-400">Tracking number</Text>
+            <Text selectable className="mt-1 text-base font-bold text-black">{shipment.tracking_number}</Text>
+            {shipment.estimated_delivery_at ? (
+              <Text className="mt-3 text-sm text-gray-600">Estimated delivery: {new Date(shipment.estimated_delivery_at).toLocaleDateString()}</Text>
+            ) : null}
+            {shipment.tracking_url ? (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(shipment.tracking_url).catch(() => {})}
+                accessibilityRole="link"
+                className="mt-4 h-12 flex-row items-center justify-center rounded-2xl bg-black"
+              >
+                <Text className="font-extrabold text-white">Track with courier</Text>
+                <Ionicons name="open-outline" size={17} color="white" style={{ marginLeft: 8 }} />
+              </TouchableOpacity>
+            ) : null}
+            {shipmentEvents.length > 0 ? (
+              <View className="mt-5 border-t border-gray-100 pt-4">
+                <Text className="mb-3 font-extrabold text-black">Courier updates</Text>
+                {shipmentEvents.map((event, index) => (
+                  <View key={event.id} className="mb-4 flex-row">
+                    <View className="mr-3 items-center">
+                      <View className="h-2.5 w-2.5 rounded-full bg-black" />
+                      {index < shipmentEvents.length - 1 ? <View className="mt-1 w-px flex-1 bg-gray-300" /> : null}
+                    </View>
+                    <View className="flex-1 pb-1">
+                      <Text className="font-bold capitalize text-black">{event.status.replaceAll('_', ' ')}</Text>
+                      <Text className="mt-1 text-sm leading-5 text-gray-600">{event.description}</Text>
+                      <Text className="mt-1 text-xs text-gray-400">{new Date(event.occurred_at).toLocaleString()}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
 
         {/* CANCEL ACTION */}

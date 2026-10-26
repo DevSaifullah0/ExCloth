@@ -180,6 +180,18 @@ const Notifications = ({
               'Coupon',
           };
 
+        case 'restock':
+          return {
+            icon: 'cube-outline',
+            label: 'Back in stock',
+          };
+
+        case 'price_drop':
+          return {
+            icon: 'trending-down-outline',
+            label: 'Price drop',
+          };
+
         default:
           return {
             icon:
@@ -234,6 +246,16 @@ const Notifications = ({
           },
         );
 
+        return;
+      }
+
+      if (item.data?.product_id) {
+        navigation.navigate('ProductDetails', {
+          product: {
+            id: Number(item.data.product_id),
+            slug: item.data.slug || null,
+          },
+        });
         return;
       }
 
@@ -370,7 +392,7 @@ const Notifications = ({
   if (loading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-white">
-        <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+        <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
           <ActivityIndicator
             size="large"
             color="black"

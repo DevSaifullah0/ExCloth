@@ -104,6 +104,18 @@ const NotificationDetails = ({
               'Return',
           };
 
+        case 'restock':
+          return {
+            icon: 'cube-outline',
+            label: 'Back in stock',
+          };
+
+        case 'price_drop':
+          return {
+            icon: 'trending-down-outline',
+            label: 'Price drop',
+          };
+
         default:
           return {
             icon:

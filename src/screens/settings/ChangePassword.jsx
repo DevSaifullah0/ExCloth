@@ -136,12 +136,12 @@ const ChangePassword = ({
 
       if (
         newPassword.length <
-        6
+        8
       ) {
         showModal(
           'warning',
           'Weak Password',
-          'New password must be at least 6 characters.',
+          'New password must be at least 8 characters.',
         );
 
         return;
@@ -487,7 +487,7 @@ const ChangePassword = ({
               </Text>
 
               <Text className="mt-2 text-sm leading-6 text-gray-500">
-                Use at least 6 characters. A longer password with letters, numbers and symbols is recommended.
+                Use at least 8 characters. A longer password with letters, numbers and symbols is recommended.
               </Text>
             </View>
           </View>

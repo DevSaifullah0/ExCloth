@@ -73,8 +73,8 @@ semantics; source review and the account-switch integration test remain mandator
 
 The client directly references these tables:
 
-`cart_items`, `categories`, `notifications`, `order_items`, `orders`,
-`payment_methods`, `payments`, `product_images`, `product_reviews`,
+`app_banners`, `cart_items`, `categories`, `notifications`, `order_items`, `orders`,
+`payment_methods`, `payments`, `product_categories`, `product_images`, `product_reviews`,
 `product_variants`, `products`, `profiles`, `return_request_items`,
 `return_requests`, `shipping_addresses`, `user_notification_preferences`,
 `user_push_tokens`, and `wishlist`.
@@ -85,6 +85,22 @@ Public catalog rows may use explicit read policies; customer rows must be scoped
 to `auth.uid()`. Admin RPCs must re-check the caller's current role server-side.
 No required RPC needs anonymous execution, and every `SECURITY DEFINER` function
 must pin `search_path`.
+
+Migration `20260818000500` adds indexes for common catalog, order-history, and
+user-owned collection reads. These indexes help as tables grow, but do not
+paginate the hosted admin list RPCs: their canonical SQL definitions are not in
+this repository, and current clients call them without cursor/limit parameters.
+Export and review those function bodies before adding server-side pagination;
+changing their signatures without that baseline could break deployed clients or
+authorization checks. Index creation on a large live table can briefly block
+writes, so rehearse this migration on staging and schedule production deployment
+for a low-traffic window.
+
+Migration `20260818000600` adds `app_banners` with public reads restricted to
+active banners inside their schedule and admin-only writes guarded by
+`is_admin_secure()`. Deploy this migration before a client release that expects
+banner management; the Home screen treats a missing table as an empty banner list
+during staged rollout.
 
 The following invoked Edge Functions are not committed and remain deployment
 blockers: `create-order`, `request-return`, `cancel-order`, `submit-review`, and

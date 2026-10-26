@@ -334,6 +334,8 @@ const AdminUserDetails = ({
         Date.now(),
     );
 
+  const isEmailVerified = Boolean(user?.email_confirmed_at);
+
 
   const updateBanStatus =
     async shouldBan => {
@@ -412,6 +414,41 @@ const AdminUserDetails = ({
         );
       }
     };
+
+
+  const resendVerificationEmail = async () => {
+    if (actionLoading || !user?.email || isEmailVerified) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: user.email,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      showModal({
+        type: 'success',
+        title: 'Verification Email Sent',
+        message: `A new verification link was sent to ${user.email}.`,
+        showCancel: false,
+      });
+    } catch (error) {
+      showModal({
+        type: 'error',
+        title: 'Email Not Sent',
+        message: error?.message || 'Unable to resend the verification email.',
+        showCancel: false,
+      });
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
 
   const confirmBanAction =
@@ -658,6 +695,12 @@ const AdminUserDetails = ({
                 : 'Active Account'}
             </Text>
 
+          </View>
+
+          <View className="mt-2 rounded-full bg-white px-4 py-2">
+            <Text className="text-sm font-bold text-black">
+              {isEmailVerified ? 'Email verified' : 'Email not verified'}
+            </Text>
           </View>
 
         </View>
@@ -1001,6 +1044,24 @@ const AdminUserDetails = ({
             <Text className="mb-3 mt-7 text-lg font-bold text-black">
               Account Control
             </Text>
+
+            {!isEmailVerified && user.email ? (
+              <TouchableOpacity
+                onPress={resendVerificationEmail}
+                disabled={actionLoading}
+                activeOpacity={0.85}
+                className="mb-3 flex-row items-center rounded-2xl bg-gray-100 p-5"
+              >
+                <View className="h-12 w-12 items-center justify-center rounded-2xl bg-white">
+                  <Ionicons name="mail-unread-outline" size={23} color="black" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-lg font-extrabold text-black">Resend verification email</Text>
+                  <Text className="mt-1 text-sm leading-5 text-gray-500">Supabase user ko naya confirmation link bhejega.</Text>
+                </View>
+                {actionLoading ? <ActivityIndicator color="black" /> : <Ionicons name="chevron-forward-outline" size={22} color="#6B7280" />}
+              </TouchableOpacity>
+            ) : null}
 
 
             <TouchableOpacity

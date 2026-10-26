@@ -210,6 +210,23 @@ const HelpSupport = ({
           </Text>
 
           <TouchableOpacity
+            onPress={() => navigation.navigate('SupportTickets')}
+            accessibilityRole="button"
+            activeOpacity={0.85}
+            className="mt-5 h-12 flex-row items-center justify-center rounded-2xl bg-white"
+          >
+            <Ionicons
+              name="chatbubbles-outline"
+              size={20}
+              color="black"
+            />
+
+            <Text className="ml-2 font-extrabold text-black">
+              Message Support
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             testID="contact-support-button"
             onPress={
               contactSupport
@@ -217,15 +234,15 @@ const HelpSupport = ({
             accessibilityRole="button"
             accessibilityLabel="Contact support by email"
             activeOpacity={0.85}
-            className="mt-5 h-12 flex-row items-center justify-center rounded-2xl bg-white"
+            className="mt-3 h-12 flex-row items-center justify-center rounded-2xl border border-white/30"
           >
             <Ionicons
               name="mail-outline"
               size={20}
-              color="black"
+              color="white"
             />
 
-            <Text className="ml-2 font-extrabold text-black">
+            <Text className="ml-2 font-extrabold text-white">
               Contact Support
             </Text>
           </TouchableOpacity>

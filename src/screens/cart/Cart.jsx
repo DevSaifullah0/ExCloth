@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Modal,
   RefreshControl,
+  Platform,
 } from 'react-native';
 
 import React, {
@@ -833,12 +834,19 @@ const Cart = ({ navigation }) => {
 
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      edges={
+        Platform.OS === 'android'
+          ? ['top', 'left', 'right']
+          : undefined
+      }
+      className="flex-1 bg-white"
+    >
       <ScrollView
-        className="px-5"
+        className="flex-1 px-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: 210,
+          paddingBottom: Platform.OS === 'android' ? 0 : 24,
         }}
         refreshControl={
           <RefreshControl
@@ -879,7 +887,7 @@ const Cart = ({ navigation }) => {
         {/* LOADING */}
         {loading ? (
           <View className="items-center py-24">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
               <ActivityIndicator
                 size="small"
                 color="black"
@@ -1298,7 +1306,11 @@ const Cart = ({ navigation }) => {
       {!loading &&
       !errorMessage &&
       cartItems.length > 0 ? (
-        <View className="absolute bottom-0 left-0 right-0 border-t border-gray-200 bg-white px-5 pb-5 pt-4">
+        <View
+          className={`border-t border-gray-200 bg-white px-5 pb-1 pt-5 ${
+            Platform.OS === 'ios' ? 'mb-12' : 'mb-1'
+          }`}
+        >
           {hasUnavailableItems ? (
             <View className="mb-3 flex-row items-center rounded-xl bg-gray-100 px-3 py-2.5">
               <Ionicons

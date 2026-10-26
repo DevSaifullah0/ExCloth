@@ -9,6 +9,8 @@ select no_plan();
 -- list explicit makes missing baseline migrations visible to pgTAP and future CI.
 with required_tables(table_name) as (
   values
+    ('admin_user_permissions'),
+    ('app_banners'),
     ('cart_items'),
     ('categories'),
     ('notifications'),
@@ -16,6 +18,7 @@ with required_tables(table_name) as (
     ('orders'),
     ('payment_methods'),
     ('payments'),
+    ('product_categories'),
     ('product_images'),
     ('product_reviews'),
     ('product_variants'),
@@ -38,6 +41,8 @@ from required_tables;
 -- policies, but RLS must still be enabled so writes/private rows remain bounded.
 with required_tables(table_name) as (
   values
+    ('admin_user_permissions'),
+    ('app_banners'),
     ('cart_items'),
     ('categories'),
     ('notifications'),
@@ -45,6 +50,7 @@ with required_tables(table_name) as (
     ('orders'),
     ('payment_methods'),
     ('payments'),
+    ('product_categories'),
     ('product_images'),
     ('product_reviews'),
     ('product_variants'),
@@ -77,6 +83,9 @@ with required_functions(function_name, argument_names) as (
     ('delete_admin_product_secure', array['p_product_id']::text[]),
     ('delete_shipping_address_secure', array['p_address_id']::text[]),
     ('get_admin_broadcasts_secure', array[]::text[]),
+    ('get_admin_business_report_secure', array[]::text[]),
+    ('get_admin_staff_secure', array[]::text[]),
+    ('get_admin_user_access_secure', array[]::text[]),
     ('get_admin_categories_secure', array[]::text[]),
     ('get_admin_category_details_secure', array['p_category_id']::text[]),
     ('get_admin_coupon_details_secure', array['p_coupon_id']::text[]),
@@ -131,6 +140,10 @@ with required_functions(function_name, argument_names) as (
     (
       'set_admin_category_image_secure',
       array['p_category_id', 'p_image_url']::text[]
+    ),
+    (
+      'set_admin_user_access_secure',
+      array['p_user_id', 'p_role', 'p_permissions']::text[]
     ),
     (
       'set_admin_product_image_secure',
@@ -194,6 +207,8 @@ with required_functions(function_name) as (
     ('delete_admin_product_secure'),
     ('delete_shipping_address_secure'),
     ('get_admin_broadcasts_secure'),
+    ('get_admin_business_report_secure'),
+    ('get_admin_staff_secure'),
     ('get_admin_categories_secure'),
     ('get_admin_category_details_secure'),
     ('get_admin_coupon_details_secure'),
@@ -259,6 +274,94 @@ select ok(
       )
   ),
   'all SECURITY DEFINER *_secure RPCs pin search_path'
+);
+
+with protected_functions(function_name) as (
+  values
+    ('delete_admin_product_secure'),
+    ('get_admin_broadcasts_secure'),
+    ('get_admin_categories_secure'),
+    ('get_admin_category_details_secure'),
+    ('get_admin_coupon_details_secure'),
+    ('get_admin_coupons_secure'),
+    ('get_admin_order_details_secure'),
+    ('get_admin_orders_secure'),
+    ('get_admin_product_details_secure'),
+    ('get_admin_products_secure'),
+    ('get_admin_return_details_secure'),
+    ('get_admin_returns_secure'),
+    ('get_admin_review_details_secure'),
+    ('get_admin_reviews_secure'),
+    ('get_admin_user_details_secure'),
+    ('get_admin_users_secure'),
+    ('save_admin_category_secure'),
+    ('save_admin_coupon_secure'),
+    ('save_admin_product_secure'),
+    ('save_admin_product_variant_secure'),
+    ('send_admin_broadcast_notification_secure'),
+    ('set_admin_category_image_secure'),
+    ('set_admin_product_image_secure'),
+    ('set_admin_review_approval_secure'),
+    ('set_admin_user_ban_secure'),
+    ('update_order_status_secure'),
+    ('update_return_status_secure')
+)
+select ok(
+  exists (
+    select 1
+    from pg_proc as procedures
+    join pg_namespace as namespaces on namespaces.oid = procedures.pronamespace
+    where namespaces.nspname = 'public'
+      and procedures.proname = protected_functions.function_name
+      and procedures.prosecdef
+      and procedures.prosrc like '%private.has_current_admin_permission%'
+  ),
+  format('public.%I enforces role permissions inside its SECURITY DEFINER body', protected_functions.function_name)
+)
+from protected_functions;
+
+select ok(
+  exists (
+    select 1
+    from pg_proc as procedures
+    join pg_namespace as namespaces on namespaces.oid = procedures.pronamespace
+    where namespaces.nspname = 'public'
+      and procedures.proname = 'get_admin_business_report_secure'
+      and procedures.prosrc not ilike '%delivery_phone%'
+      and procedures.prosrc not ilike '%delivery_full_name%'
+      and procedures.prosrc not ilike '%user_id%'
+  ),
+  'business reports omit customer identity and delivery contact fields'
+);
+
+select ok(
+  exists (
+    select 1 from pg_proc as procedures
+    join pg_namespace as namespaces on namespaces.oid = procedures.pronamespace
+    where namespaces.nspname = 'private'
+      and procedures.proname = 'has_current_admin_permission'
+      and procedures.prosecdef
+      and has_function_privilege('authenticated', procedures.oid, 'EXECUTE')
+      and not has_function_privilege('anon', procedures.oid, 'EXECUTE')
+  ),
+  'permission helper is SECURITY DEFINER and authenticated-only'
+);
+
+select ok(
+  (
+    select count(*) = 4
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'app_banners'
+      and policyname in (
+        'app_banners_admin_read_all',
+        'app_banners_admin_insert',
+        'app_banners_admin_update',
+        'app_banners_admin_delete'
+      )
+      and coalesce(qual, '') || coalesce(with_check, '') ilike '%has_current_admin_permission%'
+  ),
+  'all admin banner reads and writes require a permission check'
 );
 
 select * from finish();

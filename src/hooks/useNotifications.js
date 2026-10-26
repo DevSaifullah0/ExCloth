@@ -335,7 +335,7 @@ const useNotifications = () => {
                   status ===
                     'TIMED_OUT'
                 ) {
-                  console.error(
+                  console.warn(
                     'Notification Realtime Status:',
                     status,
                   );

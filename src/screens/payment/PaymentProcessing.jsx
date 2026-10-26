@@ -505,8 +505,8 @@ const PaymentProcessing = ({
         {/* MAIN PROCESSING */}
         <View className="flex-1 items-center justify-center">
           <View className="items-center">
-            <View className="h-28 w-28 items-center justify-center rounded-full bg-gray-100">
-              <View className="h-20 w-20 items-center justify-center rounded-full bg-white">
+            <View className="h-20 w-20 items-center justify-center rounded-full bg-gray-50">
+              <View className="h-16 w-16 items-center justify-center rounded-full bg-white">
                 <ActivityIndicator
                   size="large"
                   color="black"

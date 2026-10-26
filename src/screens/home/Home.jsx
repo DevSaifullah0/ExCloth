@@ -3,10 +3,11 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  FlatList,
   Image,
   ActivityIndicator,
   RefreshControl,
-  AccessibilityInfo,
+  Platform,
   useWindowDimensions,
 } from 'react-native';
 
@@ -60,6 +61,32 @@ const PRODUCT_FIELDS = `
   is_featured
 `;
 
+const BLACK_COLOR_NAMES = new Set([
+  'black',
+  'jet black',
+  'matte black',
+  'midnight black',
+]);
+
+const withCatalogImage = (product, imagesByProduct) => {
+  const productImages = imagesByProduct.get(product.id) || [];
+  const nonBlackImages = productImages.filter(image => {
+    const color = String(image.color || '').trim().toLowerCase();
+
+    return color && !BLACK_COLOR_NAMES.has(color);
+  });
+  const selectedImage =
+    nonBlackImages.find(image => image.is_primary) ||
+    nonBlackImages[0] ||
+    productImages.find(image => image.is_primary) ||
+    productImages[0];
+
+  return {
+    ...product,
+    image_url: selectedImage?.image_url || product.image_url,
+  };
+};
+
 const getSalePercentage = product => {
   const currentPrice = Number(product?.price || 0);
   const oldPrice = Number(product?.old_price || 0);
@@ -92,6 +119,8 @@ const Home = ({ navigation }) => {
   const [popularProducts, setPopularProducts] =
     useState([]);
 
+  const [homeBanners, setHomeBanners] = useState([]);
+
   const [selectedFilter, setSelectedFilter] =
     useState('all');
 
@@ -103,8 +132,8 @@ const Home = ({ navigation }) => {
   const [errorMessage, setErrorMessage] =
     useState('');
 
-  const [reduceMotion, setReduceMotion] =
-    useState(false);
+  const [carouselIndex, setCarouselIndex] =
+    useState(0);
 
   const {
     unreadCount,
@@ -117,32 +146,7 @@ const Home = ({ navigation }) => {
 
   const bannerScrollRef = useRef(null);
 
-  const currentBannerIndex = useRef(0);
-
-
-  useEffect(() => {
-    let mounted = true;
-
-    AccessibilityInfo
-      .isReduceMotionEnabled()
-      .then(enabled => {
-        if (mounted) {
-          setReduceMotion(enabled);
-        }
-      })
-      .catch(() => undefined);
-
-    const subscription =
-      AccessibilityInfo.addEventListener(
-        'reduceMotionChanged',
-        setReduceMotion,
-      );
-
-    return () => {
-      mounted = false;
-      subscription.remove();
-    };
-  }, []);
+  const homeRequestIdRef = useRef(0);
 
   // =====================================
   // FILTERED CAROUSEL PRODUCTS
@@ -185,6 +189,9 @@ const Home = ({ navigation }) => {
   // =====================================
 
   const fetchHomeData = useCallback(async () => {
+    const requestId = homeRequestIdRef.current + 1;
+    homeRequestIdRef.current = requestId;
+
     try {
       setErrorMessage('');
 
@@ -194,6 +201,7 @@ const Home = ({ navigation }) => {
         newResult,
         saleResult,
         popularResult,
+        bannerResult,
       ] =
         await Promise.all([
           supabase
@@ -244,6 +252,13 @@ const Home = ({ navigation }) => {
               ascending: false,
             })
             .limit(8),
+
+          supabase
+            .from('app_banners')
+            .select('id, title, subtitle, image_url, sort_order')
+            .eq('is_active', true)
+            .order('sort_order', { ascending: true })
+            .limit(8),
         ]);
 
       const firstError = [
@@ -257,6 +272,10 @@ const Home = ({ navigation }) => {
 
       if (firstError) {
         throw firstError;
+      }
+
+      if (requestId !== homeRequestIdRef.current) {
+        return;
       }
 
       const carouselMap = new Map();
@@ -275,16 +294,72 @@ const Home = ({ navigation }) => {
         }
       });
 
-      setCarouselProducts(
-        Array.from(
-          carouselMap.values(),
-        ),
+      const carouselItems = Array.from(carouselMap.values());
+      const popularItems = popularResult.data || [];
+
+      setHomeBanners(
+        bannerResult.error ? [] : bannerResult.data || [],
       );
 
-      setPopularProducts(
-        popularResult.data || [],
-      );
+      setCarouselProducts(carouselItems);
+      setPopularProducts(popularItems);
+      setLoading(false);
+      setRefreshing(false);
+
+      const productIds = [
+        ...new Set(
+          [...carouselItems, ...popularItems]
+            .map(product => product.id)
+            .filter(Boolean),
+        ),
+      ];
+      let imagesByProduct = new Map();
+
+      if (productIds.length > 0) {
+        const { data: productImages, error: productImagesError } =
+          await supabase
+            .from('product_images')
+            .select('product_id, image_url, color, is_primary, sort_order')
+            .in('product_id', productIds)
+            .order('sort_order', { ascending: true });
+
+        if (productImagesError) {
+          if (__DEV__) {
+            console.warn(
+              'Home product images unavailable:',
+              productImagesError.message,
+            );
+          }
+        } else {
+          imagesByProduct = (productImages || []).reduce((imageMap, image) => {
+            const currentImages = imageMap.get(image.product_id) || [];
+
+            currentImages.push(image);
+            imageMap.set(image.product_id, currentImages);
+
+            return imageMap;
+          }, new Map());
+        }
+      }
+
+      if (requestId === homeRequestIdRef.current) {
+        setCarouselProducts(
+          carouselItems.map(product =>
+            withCatalogImage(product, imagesByProduct),
+          ),
+        );
+
+        setPopularProducts(
+          popularItems.map(product =>
+            withCatalogImage(product, imagesByProduct),
+          ),
+        );
+      }
     } catch (error) {
+      if (requestId !== homeRequestIdRef.current) {
+        return;
+      }
+
       if (__DEV__) {
         console.error(
           'Home Data Error:',
@@ -296,8 +371,10 @@ const Home = ({ navigation }) => {
         'Unable to load home data.',
       );
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (requestId === homeRequestIdRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, []);
 
@@ -334,58 +411,12 @@ const Home = ({ navigation }) => {
   // =====================================
 
   useEffect(() => {
-    currentBannerIndex.current = 0;
-
-    bannerScrollRef.current?.scrollTo({
-      x: 0,
-      animated: !reduceMotion,
+    setCarouselIndex(0);
+    bannerScrollRef.current?.scrollToOffset({
+      offset: 0,
+      animated: false,
     });
-  }, [
-    cardWidth,
-    reduceMotion,
-    selectedFilter,
-  ]);
-
-  // =====================================
-  // AUTO SCROLL EVERY 2.5 SECONDS
-  // =====================================
-
-  useEffect(() => {
-    if (
-      reduceMotion ||
-      filteredProducts.length <= 1
-    ) {
-      return;
-    }
-
-    const interval = setInterval(() => {
-      let nextIndex =
-        currentBannerIndex.current + 1;
-
-      if (
-        nextIndex >= filteredProducts.length
-      ) {
-        nextIndex = 0;
-      }
-
-      currentBannerIndex.current = nextIndex;
-
-      bannerScrollRef.current?.scrollTo({
-        x:
-          nextIndex *
-          (cardWidth + CARD_GAP),
-        animated: true,
-      });
-    }, 2500);
-
-    return () => {
-      clearInterval(interval);
-    };
-  }, [
-    cardWidth,
-    filteredProducts,
-    reduceMotion,
-  ]);
+  }, [cardWidth, selectedFilter]);
 
   // =====================================
   // MANUAL CAROUSEL SCROLL
@@ -400,7 +431,7 @@ const Home = ({ navigation }) => {
         (cardWidth + CARD_GAP),
     );
 
-    currentBannerIndex.current = index;
+    setCarouselIndex(index);
   };
 
   // =====================================
@@ -412,7 +443,7 @@ const Home = ({ navigation }) => {
       return;
     }
 
-    currentBannerIndex.current = 0;
+    setCarouselIndex(0);
     setSelectedFilter(filterKey);
   };
 
@@ -423,7 +454,7 @@ const Home = ({ navigation }) => {
   const handleRefresh = () => {
     setRefreshing(true);
 
-    currentBannerIndex.current = 0;
+    setCarouselIndex(0);
 
     fetchHomeData();
 
@@ -433,12 +464,15 @@ const Home = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      edges={Platform.OS === 'android' ? ['top', 'left', 'right'] : undefined}
+      className="flex-1 bg-white"
+    >
       <ScrollView
         className="px-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: 30,
+          paddingBottom: Platform.OS === 'android' ? 0 : 30,
         }}
         refreshControl={
           <RefreshControl
@@ -535,6 +569,42 @@ const Home = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
+        {homeBanners.length > 0 ? (
+          <FlatList
+            horizontal
+            data={homeBanners}
+            keyExtractor={item => item.id}
+            showsHorizontalScrollIndicator={false}
+            snapToInterval={cardWidth + CARD_GAP}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingTop: 18 }}
+            ItemSeparatorComponent={() => <View style={{ width: CARD_GAP }} />}
+            renderItem={({ item }) => (
+              <View
+                className="h-44 overflow-hidden rounded-3xl bg-gray-100"
+                style={{ width: cardWidth }}
+                accessibilityLabel={`${item.title}${item.subtitle ? `, ${item.subtitle}` : ''}`}
+              >
+                <Image
+                  source={{ uri: item.image_url }}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                />
+                <View className="absolute inset-0 justify-end bg-black/30 p-5">
+                  <Text numberOfLines={1} className="text-2xl font-extrabold text-white">
+                    {item.title}
+                  </Text>
+                  {item.subtitle ? (
+                    <Text numberOfLines={2} className="mt-1 text-sm font-medium text-white">
+                      {item.subtitle}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            )}
+          />
+        ) : null}
+
         {/* =================================
             PRODUCT FILTERS
         ================================= */}
@@ -630,15 +700,17 @@ const Home = ({ navigation }) => {
         ) : null}
 
         {/* =================================
-            AUTO SCROLL PRODUCT CARDS
+            FEATURED PRODUCT CAROUSEL
         ================================= */}
 
         {!loading &&
         !errorMessage &&
         filteredProducts.length > 0 ? (
           <View className="mt-6">
-            <ScrollView
+            <FlatList
               ref={bannerScrollRef}
+              data={filteredProducts}
+              keyExtractor={product => String(product.id)}
               horizontal
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
@@ -649,9 +721,15 @@ const Home = ({ navigation }) => {
               onMomentumScrollEnd={
                 handleBannerScrollEnd
               }
-            >
-              {filteredProducts.map(
-                (product, index) => {
+              initialNumToRender={2}
+              maxToRenderPerBatch={3}
+              windowSize={3}
+              getItemLayout={(_, index) => ({
+                length: cardWidth + CARD_GAP,
+                offset: (cardWidth + CARD_GAP) * index,
+                index,
+              })}
+              renderItem={({ item: product, index }) => {
                   const salePercentage =
                     getSalePercentage(product);
 
@@ -789,9 +867,14 @@ const Home = ({ navigation }) => {
                       </View>
                     </TouchableOpacity>
                   );
-                },
-              )}
-            </ScrollView>
+                }}
+            />
+            <Text
+              accessibilityLiveRegion="polite"
+              className="mt-3 text-center text-xs font-semibold text-gray-500"
+            >
+              Product {carouselIndex + 1} of {filteredProducts.length}
+            </Text>
           </View>
         ) : null}
 

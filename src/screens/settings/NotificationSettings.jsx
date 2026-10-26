@@ -636,7 +636,7 @@ const NotificationSettings = ({
 
         {
           loading ? (
-            <View className="items-center rounded-3xl bg-gray-100 p-8">
+            <View className="items-center rounded-3xl bg-gray-50 p-5">
               <ActivityIndicator
                 size="large"
                 color="black"

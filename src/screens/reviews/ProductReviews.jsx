@@ -506,7 +506,7 @@ const ProductReviews = ({
         {/* LOADING */}
         {loading ? (
           <View className="items-center py-24">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
               <ActivityIndicator
                 size="large"
                 color="black"

@@ -8,6 +8,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  ScrollView,
+  StyleSheet,
 } from 'react-native';
 
 import React, {
@@ -21,6 +23,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 
 import { useAuth } from '../../context/AuthContext';
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+  },
+});
 
 const ResetPassword = ({
   navigation,
@@ -205,7 +221,13 @@ const ResetPassword = ({
         }
       >
 
-        <View className="flex-1 px-5">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={styles.form}>
 
           {/* Header */}
 
@@ -363,7 +385,7 @@ const ResetPassword = ({
                   color="white"
                 />
 
-                <Text className="ml-2 text-base font-bold text-white">
+                <Text className="ml-2 text-sm font-bold tracking-wide text-white">
                   Update Password
                 </Text>
               </>
@@ -372,6 +394,7 @@ const ResetPassword = ({
           </TouchableOpacity>
 
         </View>
+        </ScrollView>
 
       </KeyboardAvoidingView>
 

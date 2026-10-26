@@ -8,10 +8,13 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  StyleSheet,
+  ScrollView,
 } from 'react-native';
 
 import React, {
   useState,
+  useRef,
 } from 'react';
 
 import Ionicons from '@react-native-vector-icons/ionicons/static';
@@ -21,6 +24,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { supabase } from '../../lib/supabase';
 
 import { useAuth } from '../../context/AuthContext';
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
+  },
+  hiddenInput: {
+    position: 'absolute',
+    width: 1,
+    height: 1,
+    opacity: 0,
+  },
+});
 
 const OTP = ({
   navigation,
@@ -36,6 +59,8 @@ const OTP = ({
 
   const [otp, setOtp] =
     useState('');
+
+  const otpInputRef = useRef(null);
 
   const [loading, setLoading] =
     useState(false);
@@ -190,7 +215,13 @@ const OTP = ({
         }
       >
 
-        <View className="flex-1 px-5">
+        <ScrollView
+          className="flex-1"
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+        <View style={styles.form}>
 
           {/* Back */}
 
@@ -210,15 +241,15 @@ const OTP = ({
 
           {/* Header */}
 
-          <Text className="mt-10 text-3xl font-extrabold text-black">
+          <Text className="mt-10 text-center text-3xl font-extrabold text-black">
             Verify Code
           </Text>
 
-          <Text className="mt-3 leading-6 text-gray-500">
+          <Text className="mt-3 text-center leading-6 text-gray-500">
             Enter the password reset verification code sent to
           </Text>
 
-          <Text className="mt-1 font-bold text-black">
+          <Text className="mt-1 text-center font-bold text-black">
             {email}
           </Text>
 
@@ -229,22 +260,45 @@ const OTP = ({
             Verification Code
           </Text>
 
-          <TextInput
-            value={otp}
-            onChangeText={text =>
-              setOtp(
-                text.replace(
-                  /\D/g,
-                  '',
-                ),
-              )
-            }
-            placeholder="Enter verification code"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="number-pad"
-            autoFocus
-            className="h-14 rounded-xl border border-gray-300 bg-gray-50 px-4 text-center text-xl font-bold tracking-widest text-black"
-          />
+          <View className="relative">
+            <View className="flex-row justify-between">
+              {Array.from({ length: 6 }, (_, index) => {
+                const digit = otp[index] || '';
+                const isCurrent = index === Math.min(otp.length, 5);
+
+                return (
+                  <TouchableOpacity
+                    key={`otp-digit-${index}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Verification digit ${index + 1}${digit ? `, ${digit}` : ', empty'}`}
+                    accessibilityHint="Opens the numeric keyboard to enter your verification code"
+                    onPress={() => otpInputRef.current?.focus()}
+                    activeOpacity={0.75}
+                    className={`h-12 w-12 items-center justify-center rounded-full border-2 ${digit ? 'border-black bg-gray-100' : isCurrent ? 'border-black bg-white' : 'border-gray-300 bg-white'}`}
+                  >
+                    <Text className={`text-lg font-bold ${digit ? 'text-black' : 'text-transparent'}`}>
+                      {digit || '0'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TextInput
+              ref={otpInputRef}
+              value={otp}
+              onChangeText={text => setOtp(text.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              textContentType="oneTimeCode"
+              autoComplete="sms-otp"
+              accessibilityLabel="Enter six-digit verification code"
+              maxLength={6}
+              style={styles.hiddenInput}
+            />
+          </View>
+
+          <Text className="mt-3 text-xs leading-5 text-gray-500">
+            Tap any circle to enter your 6-digit code.
+          </Text>
 
 
           {/* Verify */}
@@ -268,7 +322,7 @@ const OTP = ({
                   color="white"
                 />
 
-                <Text className="ml-2 text-base font-bold text-white">
+                <Text className="ml-2 text-sm font-bold tracking-wide text-white">
                   Verify Code
                 </Text>
               </>
@@ -281,7 +335,7 @@ const OTP = ({
 
           <View className="mt-6 flex-row items-center justify-center">
 
-            <Text className="text-gray-500">
+            <Text className="text-sm text-gray-500">
               Didn't receive the code?
             </Text>
 
@@ -299,7 +353,7 @@ const OTP = ({
                   }}
                 />
               ) : (
-                <Text className="ml-2 font-bold text-black">
+                <Text className="ml-2 text-sm font-bold text-black">
                   Resend
                 </Text>
               )}
@@ -309,6 +363,7 @@ const OTP = ({
           </View>
 
         </View>
+        </ScrollView>
 
       </KeyboardAvoidingView>
 

@@ -169,6 +169,11 @@ const AdminProductDetails = ({
     setVariants,
   ] = useState([]);
 
+  const [sizeGuideTitle, setSizeGuideTitle] = useState('Size Guide');
+  const [sizeGuideUnit, setSizeGuideUnit] = useState('cm');
+  const [sizeGuideRowsText, setSizeGuideRowsText] = useState('');
+  const [savingSizeGuide, setSavingSizeGuide] = useState(false);
+
 
   const [
     currentImageUrl,
@@ -461,6 +466,7 @@ const AdminProductDetails = ({
           }),
         ),
       );
+
     };
 
 
@@ -531,6 +537,23 @@ const AdminProductDetails = ({
           applyProductData(
             data,
           );
+
+          const product = data?.product || data;
+          const { data: sizeGuideData, error: sizeGuideError } = await supabase
+            .from('product_size_guides')
+            .select('title, unit, rows')
+            .eq('product_id', product.id || currentProductId)
+            .maybeSingle();
+          if (!sizeGuideError) {
+            setSizeGuideTitle(sizeGuideData?.title || 'Size Guide');
+            setSizeGuideUnit(sizeGuideData?.unit || 'cm');
+            setSizeGuideRowsText((Array.isArray(sizeGuideData?.rows) ? sizeGuideData.rows : []).map(row => {
+              const measurements = Object.entries(row || {})
+                .filter(([key]) => key !== 'size')
+                .map(([key, value]) => `${key}: ${value}`);
+              return [row?.size || '', ...measurements].filter(Boolean).join(' | ');
+            }).join('\n'));
+          }
 
         } catch (error) {
           if (__DEV__) {
@@ -957,11 +980,11 @@ const AdminProductDetails = ({
             includeBase64:
               true,
             quality:
-              0.85,
+              0.75,
             maxWidth:
-              1600,
+              800,
             maxHeight:
-              1600,
+              800,
             restrictMimeTypes:
               ALLOWED_IMAGE_TYPES,
           });
@@ -1540,6 +1563,50 @@ const AdminProductDetails = ({
         setSaving(false);
       }
     };
+
+  const saveSizeGuide = async () => {
+    if (!currentProductId) {
+      showModal({ type: 'info', title: 'Save product first', message: 'Create and save this product before adding its size guide.' });
+      return;
+    }
+    const rows = sizeGuideRowsText.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+      const [size, ...measurements] = line.split('|').map(value => value.trim());
+      const row = { size };
+      measurements.forEach(measurement => {
+        const separator = measurement.indexOf(':');
+        if (separator > 0) {
+          const key = measurement.slice(0, separator).trim();
+          const value = measurement.slice(separator + 1).trim();
+          if (key && value) row[key] = value;
+        }
+      });
+      return row;
+    });
+    if (rows.length > 20 || rows.some(row => !row.size || Object.keys(row).length < 2)) {
+      showModal({ type: 'error', title: 'Check size guide rows', message: 'Add 1–20 rows. Use: Size | Chest: 90 | Length: 65.' });
+      return;
+    }
+    try {
+      setSavingSizeGuide(true);
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('Admin session not found.');
+      const { error } = await supabase.from('product_size_guides').upsert({
+        product_id: currentProductId,
+        title: sizeGuideTitle.trim() || 'Size Guide',
+        unit: sizeGuideUnit,
+        rows,
+        updated_by: authData.user.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'product_id' });
+      if (error) throw error;
+      showModal({ type: 'success', title: 'Size guide saved', message: 'Customers can now view this guide on the product page.' });
+    } catch (error) {
+      showModal({ type: 'error', title: 'Unable to save size guide', message: error.message || 'Please try again.' });
+    } finally {
+      setSavingSizeGuide(false);
+    }
+  };
 
 
   const deleteProduct =
@@ -2558,6 +2625,37 @@ const AdminProductDetails = ({
 
           {currentProductId ? (
             <>
+              <View className="mt-8 rounded-3xl border border-gray-200 bg-white p-5">
+                <View className="flex-row items-start">
+                  <View className="h-11 w-11 items-center justify-center rounded-2xl bg-gray-100">
+                    <Ionicons name="resize-outline" size={22} color="black" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-lg font-extrabold text-black">Size guide</Text>
+                    <Text className="mt-1 text-sm leading-5 text-gray-500">One size per line: `M | Chest: 96 | Length: 68`</Text>
+                  </View>
+                </View>
+                <TextInput value={sizeGuideTitle} onChangeText={setSizeGuideTitle} maxLength={80} placeholder="Guide title" className="mt-4 rounded-xl bg-gray-100 px-4 py-3 text-black" />
+                <View className="mt-3 flex-row gap-2">
+                  {['cm', 'in'].map(unit => (
+                    <TouchableOpacity key={unit} onPress={() => setSizeGuideUnit(unit)} className={`rounded-xl px-5 py-3 ${sizeGuideUnit === unit ? 'bg-black' : 'bg-gray-100'}`}>
+                      <Text className={`font-bold uppercase ${sizeGuideUnit === unit ? 'text-white' : 'text-black'}`}>{unit}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  value={sizeGuideRowsText}
+                  onChangeText={setSizeGuideRowsText}
+                  multiline
+                  textAlignVertical="top"
+                  placeholder={'S | Chest: 90 | Length: 64\nM | Chest: 96 | Length: 68'}
+                  className="mt-3 min-h-28 rounded-xl bg-gray-100 px-4 py-3 text-black"
+                />
+                <TouchableOpacity onPress={saveSizeGuide} disabled={savingSizeGuide} className="mt-4 h-12 flex-row items-center justify-center rounded-2xl bg-black">
+                  {savingSizeGuide ? <ActivityIndicator color="white" /> : <Text className="font-extrabold text-white">Save size guide</Text>}
+                </TouchableOpacity>
+              </View>
+
               <View className="mt-9 flex-row items-center justify-between">
 
                 <View>

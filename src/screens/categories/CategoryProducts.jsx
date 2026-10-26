@@ -23,6 +23,11 @@ import { supabase } from '../../lib/supabase';
 
 
 const PAGE_SIZE = 20;
+const SORT_OPTIONS = [
+  { key: 'newest', label: 'Newest' },
+  { key: 'price-low', label: 'Price: Low to High' },
+  { key: 'price-high', label: 'Price: High to Low' },
+];
 
 const styles = StyleSheet.create({
   columnWrapper: {
@@ -54,6 +59,8 @@ const CategoryProducts = ({
 
   const [products, setProducts] =
     useState([]);
+  const [sortMode, setSortMode] =
+    useState('newest');
   const [loading, setLoading] =
     useState(true);
   const [refreshing, setRefreshing] =
@@ -138,11 +145,17 @@ const CategoryProducts = ({
               'product_categories.category_id',
               categoryId,
             )
-            .order('created_at', {
-              ascending: false,
-            })
+            .order(
+              sortMode === 'newest'
+                ? 'created_at'
+                : 'price',
+              {
+                ascending:
+                  sortMode === 'price-low',
+              },
+            )
             .order('id', {
-              ascending: false,
+              ascending: sortMode === 'price-low',
             })
             .range(
               offset,
@@ -241,7 +254,7 @@ const CategoryProducts = ({
           }
         }
       },
-      [categoryId],
+      [categoryId, sortMode],
     );
 
 
@@ -532,13 +545,47 @@ const CategoryProducts = ({
           </View>
         </View>
       ) : null}
+
+      {!loading && !errorMessage && products.length > 0 ? (
+        <View className="mb-5">
+          <Text className="mb-2 text-sm font-bold text-gray-600">
+            Sort by
+          </Text>
+          <View className="flex-row flex-wrap">
+            {SORT_OPTIONS.map(option => {
+              const selected = sortMode === option.key;
+
+              return (
+                <TouchableOpacity
+                  key={option.key}
+                  onPress={() => setSortMode(option.key)}
+                  accessibilityRole="tab"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ selected }}
+                  className={`mr-2 mt-1 rounded-full px-4 py-2.5 ${
+                    selected ? 'bg-black' : 'bg-gray-100'
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-bold ${
+                      selected ? 'text-white' : 'text-black'
+                    }`}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
     </View>
   );
 
 
   const listEmpty = loading ? (
     <View className="items-center py-24">
-      <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+      <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
         <ActivityIndicator
           size="large"
           color="black"

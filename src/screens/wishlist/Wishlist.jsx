@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Modal,
   RefreshControl,
+  Platform,
 } from 'react-native';
 
 import React, {
@@ -638,12 +639,15 @@ const Wishlist = ({ navigation }) => {
     };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView
+      edges={Platform.OS === 'android' ? ['top', 'left', 'right'] : undefined}
+      className="flex-1 bg-white"
+    >
       <ScrollView
         className="px-5"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
-          paddingBottom: 40,
+          paddingBottom: Platform.OS === 'android' ? 0 : 40,
         }}
         refreshControl={
           <RefreshControl
@@ -684,7 +688,7 @@ const Wishlist = ({ navigation }) => {
         {/* LOADING */}
         {loading ? (
           <View className="items-center py-24">
-            <View className="h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-gray-50">
               <ActivityIndicator
                 size="small"
                 color="black"

@@ -67,6 +67,11 @@ const ProductDetails = ({
   const [variants, setVariants] =
     useState([]);
 
+  const [sizeGuide, setSizeGuide] = useState(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [productAlerts, setProductAlerts] = useState([]);
+  const [savingAlertType, setSavingAlertType] = useState(null);
+
 
   // ==========================================
   // SELECTED VARIANT
@@ -361,6 +366,79 @@ const ProductDetails = ({
   // FETCH PRODUCT DETAILS
   // ==========================================
 
+  const loadProductExtras = async productId => {
+    setSizeGuide(null);
+    setProductAlerts([]);
+    const guideResult = await supabase
+      .from('product_size_guides')
+      .select('title, unit, rows')
+      .eq('product_id', productId)
+      .maybeSingle();
+    if (!guideResult.error) setSizeGuide(guideResult.data || null);
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) return;
+    const alertsResult = await supabase
+      .from('product_alert_subscriptions')
+      .select('alert_type')
+      .eq('product_id', productId)
+      .eq('user_id', authData.user.id);
+    if (!alertsResult.error) {
+      setProductAlerts((alertsResult.data || []).map(item => item.alert_type));
+    }
+  };
+
+  const toggleProductAlert = async alertType => {
+    if (savingAlertType) return;
+
+    try {
+      setSavingAlertType(alertType);
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) {
+        showModal({ type: 'info', title: 'Sign in required', message: 'Sign in to receive product alerts.' });
+        return;
+      }
+      const subscribed = productAlerts.includes(alertType);
+      let result;
+      if (subscribed) {
+        result = await supabase
+          .from('product_alert_subscriptions')
+          .delete()
+          .eq('user_id', authData.user.id)
+          .eq('product_id', product.id)
+          .eq('alert_type', alertType);
+      } else {
+        result = await supabase
+          .from('product_alert_subscriptions')
+          .insert({
+            user_id: authData.user.id,
+            product_id: product.id,
+            alert_type: alertType,
+            target_price: null,
+          });
+      }
+      if (result.error?.code === '23505' && !subscribed) {
+        setProductAlerts(current => current.includes(alertType) ? current : [...current, alertType]);
+        showModal({ type: 'success', title: 'Alert already enabled', message: 'You will receive this product alert.' });
+        return;
+      }
+      if (result.error) throw result.error;
+      setProductAlerts(current => subscribed
+        ? current.filter(value => value !== alertType)
+        : [...current, alertType]);
+      showModal({
+        type: 'success',
+        title: subscribed ? 'Alert removed' : 'Alert enabled',
+        message: subscribed ? 'You will no longer receive this alert.' : 'We will notify you when this product meets your alert condition.',
+      });
+    } catch (error) {
+      showModal({ type: 'error', title: 'Unable to update alert', message: error.message || 'Please try again.' });
+    } finally {
+      setSavingAlertType(null);
+    }
+  };
+
   const fetchProductDetails =
     async () => {
       const requestId =
@@ -402,148 +480,78 @@ const ProductDetails = ({
         }
 
 
-        // =====================================
-        // FETCH PRODUCT
-        // =====================================
+        const reviewSummaryRequest = fetchReviewSummary(
+          passedProduct.id,
+          requestId,
+        );
 
-        const {
-          data: productData,
-          error: productError,
-        } = await supabase
-          .from('products')
-          .select(`
-            id,
-            name,
-            slug,
-            description,
-            price,
-            old_price,
-            image_url,
-            stock_quantity,
-            is_popular,
-            is_new,
-            is_featured
-          `)
-          .eq(
-            'id',
-            passedProduct.id,
-          )
-          .eq(
-            'is_active',
-            true,
-          )
-          .single();
+        const [productResult, imageResult, variantResult] =
+          await Promise.all([
+            supabase
+              .from('products')
+              .select(`
+                id,
+                name,
+                slug,
+                description,
+                price,
+                old_price,
+                image_url,
+                stock_quantity,
+                is_popular,
+                is_new,
+                is_featured
+              `)
+              .eq('id', passedProduct.id)
+              .eq('is_active', true)
+              .single(),
+            supabase
+              .from('product_images')
+              .select(`
+                id,
+                image_url,
+                color,
+                is_primary,
+                sort_order
+              `)
+              .eq('product_id', passedProduct.id)
+              .order('sort_order', { ascending: true }),
+            supabase
+              .from('product_variants')
+              .select(`
+                id,
+                product_id,
+                size,
+                color,
+                sku,
+                stock_quantity,
+                price_adjustment,
+                is_active
+              `)
+              .eq('product_id', passedProduct.id)
+              .order('id', { ascending: true }),
+          ]);
 
+        const { data: productData, error: productError } = productResult;
+        const { data: imageData, error: imageError } = imageResult;
+        const { data: variantData, error: variantError } = variantResult;
 
         if (productError) {
           throw productError;
         }
 
-
-        if (
-          requestId !==
-          detailsRequestIdRef.current
-        ) {
-          return;
-        }
-
-
-        // =====================================
-        // FETCH REVIEW SUMMARY
-        // =====================================
-
-        await fetchReviewSummary(
-          productData.id,
-          requestId,
-        );
-
-
-        if (
-          requestId !==
-          detailsRequestIdRef.current
-        ) {
-          return;
-        }
-
-
-        // =====================================
-        // FETCH PRODUCT IMAGES
-        // =====================================
-
-        const {
-          data: imageData,
-          error: imageError,
-        } = await supabase
-          .from(
-            'product_images',
-          )
-          .select(`
-            id,
-            image_url,
-            color,
-            is_primary,
-            sort_order
-          `)
-          .eq(
-            'product_id',
-            passedProduct.id,
-          )
-          .order(
-            'sort_order',
-            {
-              ascending: true,
-            },
-          );
-
-
         if (imageError) {
           throw imageError;
         }
 
-
-        if (
-          requestId !==
-          detailsRequestIdRef.current
-        ) {
-          return;
-        }
-
-
-        // =====================================
-        // FETCH PRODUCT VARIANTS
-        // =====================================
-
-        const {
-          data: variantData,
-          error: variantError,
-        } = await supabase
-          .from(
-            'product_variants',
-          )
-          .select(`
-            id,
-            product_id,
-            size,
-            color,
-            sku,
-            stock_quantity,
-            price_adjustment,
-            is_active
-          `)
-          .eq(
-            'product_id',
-            passedProduct.id,
-          )
-          .order(
-            'id',
-            {
-              ascending: true,
-            },
-          );
-
-
         if (variantError) {
           throw variantError;
+        }
+
+        await reviewSummaryRequest;
+
+        if (requestId !== detailsRequestIdRef.current) {
+          return;
         }
 
 
@@ -587,6 +595,8 @@ const ProductDetails = ({
         setVariants(
           loadedVariants,
         );
+
+        await loadProductExtras(productData.id);
 
 
         // =====================================
@@ -2341,6 +2351,36 @@ const ProductDetails = ({
             </View>
           ) : null}
 
+          {sizeGuide ? (
+            <View className="mt-4 overflow-hidden rounded-2xl border border-gray-200">
+              <TouchableOpacity
+                onPress={() => setShowSizeGuide(current => !current)}
+                className="flex-row items-center justify-between px-4 py-4"
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showSizeGuide }}
+              >
+                <View className="flex-row items-center">
+                  <Ionicons name="resize-outline" size={20} color="black" />
+                  <Text className="ml-2 font-extrabold text-black">{sizeGuide.title || 'Size guide'}</Text>
+                </View>
+                <Ionicons name={showSizeGuide ? 'chevron-up-outline' : 'chevron-down-outline'} size={18} color="#6B7280" />
+              </TouchableOpacity>
+              {showSizeGuide ? (
+                <View className="border-t border-gray-100 px-4 pb-4 pt-3">
+                  {(Array.isArray(sizeGuide.rows) ? sizeGuide.rows : []).map((row, index) => (
+                    <View key={`${row?.size || 'row'}-${index}`} className="flex-row justify-between border-b border-gray-100 py-2">
+                      <Text className="font-extrabold text-black">{row?.size || `Option ${index + 1}`}</Text>
+                      <Text className="ml-3 flex-1 text-right text-sm text-gray-600">
+                        {Object.entries(row || {}).filter(([key]) => key !== 'size').map(([key, value]) => `${key}: ${value} ${sizeGuide.unit || 'cm'}`).join('  ·  ')}
+                      </Text>
+                    </View>
+                  ))}
+                  {(!Array.isArray(sizeGuide.rows) || sizeGuide.rows.length === 0) ? <Text className="text-sm text-gray-500">Size measurements are not available yet.</Text> : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
 
           {/* COLOR */}
           {colors.length > 0 ? (
@@ -2500,6 +2540,23 @@ const ProductDetails = ({
               </Text>
             </View>
           ) : null}
+
+          <View className="mt-6 rounded-2xl bg-gray-100 p-4">
+            <Text className="font-extrabold text-black">Product alerts</Text>
+            <Text className="mt-1 text-sm leading-5 text-gray-500">Get an in-app notification when stock returns or the price drops.</Text>
+            {currentStock <= 0 ? (
+              <TouchableOpacity disabled={Boolean(savingAlertType)} onPress={() => toggleProductAlert('restock')} className="mt-3 flex-row items-center rounded-xl bg-white px-4 py-3">
+                <Ionicons name={productAlerts.includes('restock') ? 'notifications' : 'notifications-outline'} size={19} color="black" />
+                <Text className="ml-2 flex-1 font-bold text-black">{productAlerts.includes('restock') ? 'Restock alert enabled' : 'Notify me when available'}</Text>
+                {savingAlertType === 'restock' ? <ActivityIndicator size="small" color="black" /> : productAlerts.includes('restock') ? <Ionicons name="checkmark-circle" size={19} color="#15803D" /> : null}
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity disabled={Boolean(savingAlertType)} onPress={() => toggleProductAlert('price_drop')} className="mt-2 flex-row items-center rounded-xl bg-white px-4 py-3">
+              <Ionicons name={productAlerts.includes('price_drop') ? 'pricetag' : 'pricetag-outline'} size={19} color="black" />
+              <Text className="ml-2 flex-1 font-bold text-black">{productAlerts.includes('price_drop') ? 'Price-drop alert enabled' : 'Alert me when price drops'}</Text>
+              {savingAlertType === 'price_drop' ? <ActivityIndicator size="small" color="black" /> : productAlerts.includes('price_drop') ? <Ionicons name="checkmark-circle" size={19} color="#15803D" /> : null}
+            </TouchableOpacity>
+          </View>
 
 
           {/* REVIEWS */}
