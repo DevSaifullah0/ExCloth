@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   TextInput,
   TouchableOpacity,
+  Linking,
   Platform,
   ActivityIndicator,
   ScrollView,
@@ -13,6 +14,8 @@ import {
 } from 'react-native';
 
 import React, {
+  useCallback,
+  useEffect,
   useState,
 } from 'react';
 
@@ -23,6 +26,8 @@ import {
 import Ionicons from '@react-native-vector-icons/ionicons/static';
 
 import { supabase } from '../../lib/supabase';
+import { AUTH_REDIRECT_URL } from '../../lib/authRedirect';
+import { useAuth } from '../../context/AuthContext';
 
 import AppModal from '../../components/common/AppModal';
 
@@ -30,6 +35,13 @@ import AppModal from '../../components/common/AppModal';
 const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  form: {
+    width: '100%',
+    maxWidth: 460,
+    alignSelf: 'center',
   },
 });
 
@@ -37,6 +49,7 @@ const styles = StyleSheet.create({
 const Login = ({
   navigation,
 }) => {
+  const { oauthError, clearOAuthError } = useAuth();
   const [
     email,
     setEmail,
@@ -69,7 +82,7 @@ const Login = ({
   });
 
 
-  const showModal = ({
+  const showModal = useCallback(({
     type = 'info',
     title = '',
     message = '',
@@ -82,7 +95,7 @@ const Login = ({
       message,
       confirmText,
     });
-  };
+  }, []);
 
 
   const closeModal = () => {
@@ -91,6 +104,21 @@ const Login = ({
       visible: false,
     }));
   };
+
+  useEffect(() => {
+    if (!oauthError) return;
+
+    showModal({
+      type: 'error',
+      title: 'Google Login Failed',
+      message: getUserFriendlyError(
+        new Error(oauthError),
+        'Google sign-in could not be completed. Please try again.',
+      ),
+      confirmText: 'Try Again',
+    });
+    clearOAuthError();
+  }, [oauthError, clearOAuthError, showModal]);
 
 
   const handleLogin =
@@ -177,6 +205,36 @@ const Login = ({
       }
     };
 
+  const handleGoogleLogin = async () => {
+    if (loading) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: AUTH_REDIRECT_URL,
+          skipBrowserRedirect: true,
+          queryParams: { prompt: 'select_account' },
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('Google sign-in could not be started.');
+
+      await Linking.openURL(data.url);
+    } catch (error) {
+      showModal({
+        type: 'error',
+        title: 'Google Login Failed',
+        message: getUserFriendlyError(error, 'Unable to start Google sign-in. Please try again.'),
+        confirmText: 'Try Again',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -196,28 +254,32 @@ const Login = ({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="mt-8 items-center">
+          <View style={styles.form}>
+          <View className="items-center">
             <Image
               source={require('../../images/Logo.png')}
-              className="h-44 w-44"
+              className="h-40 w-50"
               resizeMode="contain"
             />
           </View>
 
 
-          <View className="mt-4">
-            <Text className="text-3xl font-extrabold text-black">
-              Welcome Back
+          <View className="mt-8 items-center">
+            <Text className="text-[10px] font-bold tracking-[2px] text-gray-500">
+              YOUR STYLE, YOUR SPACE
+            </Text>
+            <Text className="mt-2 text-3xl font-extrabold text-black">
+              Welcome back.
             </Text>
 
-            <Text className="mt-1 text-sm text-gray-500">
-              Sign in to continue to your account
+            <Text className="mt-2 text-center text-sm leading-5 text-gray-500">
+              Sign in to pick up right where you left off.
             </Text>
           </View>
 
 
           <View className="mt-7">
-            <Text className="mb-1.5 font-semibold text-black">
+            <Text className="mb-2 text-xs font-bold tracking-wide text-black">
               Email
             </Text>
 
@@ -236,7 +298,7 @@ const Login = ({
             />
 
 
-            <Text className="mb-1.5 mt-4 font-semibold text-black">
+            <Text className="mb-2 mt-4 font-semibold text-black">
               Password
             </Text>
 
@@ -305,7 +367,7 @@ const Login = ({
               accessibilityLabel="Forgot password"
               className="mt-3 self-end"
             >
-              <Text className="font-semibold text-blue-600">
+              <Text className="font-semibold text-black">
                 Forgot Password?
               </Text>
             </TouchableOpacity>
@@ -323,7 +385,7 @@ const Login = ({
                 busy: loading,
               }}
               activeOpacity={0.8}
-              className={`mt-6 h-12 items-center justify-center rounded-xl ${
+              className={`mt-7 h-14 items-center justify-center rounded-2xl ${
                 loading
                   ? 'bg-gray-400'
                   : 'bg-black'
@@ -334,15 +396,37 @@ const Login = ({
                   color="white"
                 />
               ) : (
-                <Text className="text-base font-bold text-white">
+                <Text className="text-sm font-bold tracking-wide text-white">
                   Login
                 </Text>
               )}
             </TouchableOpacity>
 
+            <TouchableOpacity
+              onPress={handleGoogleLogin}
+              disabled={loading}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Google"
+              className="mt-3 h-14 flex-row items-center justify-center rounded-lg border border-[#DADCE0] bg-white"
+            >
+              {loading ? (
+                <ActivityIndicator color="black" />
+              ) : (
+                <>
+                  <Image
+                    source={require('../../images/GoogleMark.png')}
+                    accessible={false}
+                    className="h-5 w-5"
+                    resizeMode="contain"
+                  />
+                  <Text className="ml-3 text-sm font-medium text-[#3C4043]">Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-            <View className="mt-5 flex-row justify-center">
-              <Text className="text-sm text-gray-500">
+
+            <View className="mt-7 flex-row justify-center">
+              <Text className="text-base text-gray-500">
                 Don&apos;t have an account?{' '}
               </Text>
 
@@ -356,11 +440,12 @@ const Login = ({
                 accessibilityRole="button"
                 accessibilityLabel="Create an account"
               >
-                <Text className="text-sm font-bold text-black">
+                <Text className="text-base font-bold text-black">
                   Sign Up
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

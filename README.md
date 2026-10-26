@@ -142,6 +142,10 @@ A normal customer is sent to the shopping app, while an authorized admin is sent
 
 Admin access is not available through signup and is not based on a role value controlled by the client.
 
+### Google sign-in setup
+
+The mobile app returns from Google through `excloth://auth/callback`. Add that exact URL to **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**, and enable the Google provider under **Authentication → Providers**. In Google Cloud, the authorized redirect URI must be the Supabase Auth callback URL shown in the Google provider settings (usually `https://<project-ref>.supabase.co/auth/v1/callback`), not the app deep link. Android and iOS already register the `excloth` scheme in this repository. See Supabase's [mobile deep-linking](https://supabase.com/docs/guides/auth/native-mobile-deep-linking) and [redirect URL](https://supabase.com/docs/guides/auth/redirect-urls) guides.
+
 ## Customer Features
 
 The customer application currently includes:

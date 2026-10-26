@@ -1,12 +1,15 @@
 import React, {
+  useCallback,
   createContext,
   useContext,
   useEffect,
   useRef,
   useState,
 } from 'react';
+import { Linking } from 'react-native';
 
 import { supabase } from '../lib/supabase';
+import { AUTH_REDIRECT_URL } from '../lib/authRedirect';
 
 
 const AuthContext = createContext(null);
@@ -16,10 +19,16 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [sessionLoading, setSessionLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
+  const [oauthError, setOAuthError] = useState(null);
+  const [accountCreatedNoticeVisible, setAccountCreatedNoticeVisible] =
+    useState(false);
 
   const recoveryRef = useRef(false);
+  const activeUserIdRef = useRef(null);
+  const clearOAuthError = useCallback(() => setOAuthError(null), []);
 
 
   const startRecovery = () => {
@@ -44,10 +53,58 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     let mounted = true;
+    const oauthCallbackPromises = new Map();
 
+    const completeOAuthRedirect = url => {
+      if (!url?.startsWith(AUTH_REDIRECT_URL)) {
+        return Promise.resolve();
+      }
+
+      if (oauthCallbackPromises.has(url)) {
+        return oauthCallbackPromises.get(url);
+      }
+
+      const callbackPromise = (async () => {
+        try {
+          const callbackUrl = new URL(url);
+          const callbackError =
+            callbackUrl.searchParams.get('error_description') ||
+            callbackUrl.searchParams.get('error');
+
+          if (callbackError) {
+            setOAuthError(callbackError);
+            return;
+          }
+
+          const code = callbackUrl.searchParams.get('code');
+          if (!code) return;
+
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } catch (error) {
+          setOAuthError(error?.message || 'Google sign-in could not be completed.');
+          if (__DEV__) {
+            console.warn('OAuth callback failed:', error?.message || error);
+          }
+        }
+      })();
+
+      oauthCallbackPromises.set(url, callbackPromise);
+      return callbackPromise;
+    };
+
+    const urlSubscription = Linking.addEventListener('url', ({ url }) => {
+      completeOAuthRedirect(url);
+    });
 
     const getInitialSession = async () => {
       try {
+        // A cold start from Google returns the app with a PKCE code in the
+        // initial URL. Exchange it before reading storage so a stale empty
+        // session cannot overwrite the freshly authenticated session.
+        const initialUrl = await Linking.getInitialURL();
+        await completeOAuthRedirect(initialUrl);
+
         const {
           data: { session: initialSession },
           error,
@@ -70,6 +127,8 @@ export const AuthProvider = ({ children }) => {
         setRoleLoading(
           Boolean(initialSession?.user),
         );
+        activeUserIdRef.current =
+          initialSession?.user?.id || null;
 
         setSession(initialSession);
 
@@ -85,6 +144,7 @@ export const AuthProvider = ({ children }) => {
           setSession(null);
           setIsAdmin(false);
           setRoleLoading(false);
+          setAuthInitialized(true);
         }
 
       } finally {
@@ -120,16 +180,23 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
+        const nextUserId =
+          newSession?.user?.id || null;
+        const userChanged =
+          activeUserIdRef.current !== nextUserId;
 
-        setRoleLoading(
-          Boolean(newSession?.user),
-        );
+        activeUserIdRef.current = nextUserId;
+
+        if (userChanged) {
+          setRoleLoading(Boolean(nextUserId));
+        }
 
         setSession(newSession);
 
 
         if (!newSession?.user) {
           setIsAdmin(false);
+          setRoleLoading(false);
         }
       },
     );
@@ -138,6 +205,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      urlSubscription.remove();
     };
   }, []);
 
@@ -154,6 +222,10 @@ export const AuthProvider = ({ children }) => {
         if (active) {
           setIsAdmin(false);
           setRoleLoading(false);
+
+          if (!sessionLoading) {
+            setAuthInitialized(true);
+          }
         }
 
         return;
@@ -200,6 +272,7 @@ export const AuthProvider = ({ children }) => {
       } finally {
         if (active) {
           setRoleLoading(false);
+          setAuthInitialized(true);
         }
       }
     };
@@ -212,12 +285,12 @@ export const AuthProvider = ({ children }) => {
       active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [session?.user?.id, sessionLoading]);
 
 
   const loading =
     sessionLoading ||
-    roleLoading;
+    !authInitialized;
 
 
   return (
@@ -225,8 +298,16 @@ export const AuthProvider = ({ children }) => {
       value={{
         session,
         loading,
+        roleLoading,
         isAdmin,
         isRecovering,
+        oauthError,
+        clearOAuthError,
+        accountCreatedNoticeVisible,
+        showAccountCreatedNotice: () =>
+          setAccountCreatedNoticeVisible(true),
+        dismissAccountCreatedNotice: () =>
+          setAccountCreatedNoticeVisible(false),
         startRecovery,
         finishRecovery,
       }}
